@@ -1,0 +1,11 @@
+{
+  "display_mode": "expand",
+  "rotate_seconds": 4,
+  "glass": true,
+  "show_seconds": false,
+  "theme": "system",
+  "items": [
+    { "name": "元旦", "date": "2027-01-01 00:00", "enabled": true },
+    { "name": "春节", "date": "2027-02-06 00:00", "enabled": true }
+  ]
+}

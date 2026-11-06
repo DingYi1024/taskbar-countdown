@@ -1,0 +1,13 @@
+# Local state and user-defined events must never be committed.
+config.json
+pos.json
+*.pid
+*.log
+*.tmp
+backups/
+__pycache__/
+dist/
+artifacts/
+*.exe
+*.pdb
+.vs/
