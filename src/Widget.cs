@@ -28,8 +28,9 @@ namespace CountdownWidget
         public bool glass { get; set; }
         public bool show_seconds { get; set; }
         public string theme { get; set; }
+        public string skin { get; set; }
         public List<CfgItem> items { get; set; }
-        public Cfg() { display_mode = "expand"; rotate_seconds = 4; glass = true; theme = "system"; items = new List<CfgItem>(); }
+        public Cfg() { display_mode = "expand"; rotate_seconds = 4; glass = true; theme = "system"; skin = "default"; items = new List<CfgItem>(); }
     }
     public static partial class Program
     {
@@ -107,9 +108,8 @@ namespace CountdownWidget
         static void Log(Exception ex) { try { File.AppendAllText(Path.Combine(Dir, "widget_error.log"), DateTime.Now + " " + ex + Environment.NewLine); } catch { } }
         static Cfg ReadConfig()
         {
-            var path = File.Exists(ConfigPath) ? ConfigPath : Path.Combine(Dir, "config.example.json");
-            if (!File.Exists(path)) return new Cfg();
-            var c = Json.Deserialize<Cfg>(File.ReadAllText(path)) ?? new Cfg();
+            if (!File.Exists(ConfigPath)) return new Cfg();
+            var c = Json.Deserialize<Cfg>(File.ReadAllText(ConfigPath)) ?? new Cfg();
             c.items = c.items ?? new List<CfgItem>();
             c.rotate_seconds = Math.Max(2, Math.Min(60, c.rotate_seconds));
             return c;
@@ -129,8 +129,84 @@ namespace CountdownWidget
             return Convert.ToInt32(Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "SystemUsesLightTheme", 1)) != 0;
         }
         static SolidColorBrush Brush(string hex) { return new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)); }
-        static Brush Ink { get { return Brush(Light ? "#26313B" : "#EDF0F4"); } }
-        static Brush Muted { get { return Brush(Light ? "#6B7580" : "#A6AFBA"); } }
+        static string _skinText = "#26313B", _skinMuted = "#6B7580", _skinAccent = "#26313B";
+        static Brush Ink { get { return Brush(_skinText); } }
+        static Brush Muted { get { return Brush(_skinMuted); } }
+        static Brush ValueInk { get { return Brush(_skinAccent); } }
+        static string ActiveSkinId = "default";
+        sealed class SkinDef { public string Bg1, Bg2, Text, Muted, Accent; }
+        static SkinDef PickSkin(string id, bool light) {
+            if (string.IsNullOrEmpty(id)) id = "default";
+            if (id == "auto") id = DetectFestivalSkin();
+            switch (id) {
+                case "christmas": return light ? new SkinDef{Bg1="#FFFFFF",Bg2="#E4F2E7",Text="#1F3B2A",Muted="#5C7A67",Accent="#C0392B"} : new SkinDef{Bg1="#1B3324",Bg2="#12241A",Text="#EAF5EC",Muted="#9CBDA6",Accent="#FF6B5A"};
+                case "newyear": return light ? new SkinDef{Bg1="#FFFFFF",Bg2="#EAF0FB",Text="#23324A",Muted="#6B7A8F",Accent="#B8860B"} : new SkinDef{Bg1="#1E2A44",Bg2="#141C2E",Text="#EEF2FA",Muted="#9FB0C9",Accent="#E8C15A"};
+                case "spring": return light ? new SkinDef{Bg1="#FFFFFF",Bg2="#FFE6DE",Text="#4A1B15",Muted="#8A5A50",Accent="#D6452E"} : new SkinDef{Bg1="#3A1712",Bg2="#26100C",Text="#FFEDE8",Muted="#C99A90",Accent="#FF7A5A"};
+                case "midautumn": return light ? new SkinDef{Bg1="#FFFFFF",Bg2="#F4EBD0",Text="#2A2E4A",Muted="#6E7391",Accent="#B8860B"} : new SkinDef{Bg1="#20263F",Bg2="#141830",Text="#F0F1FA",Muted="#A0A6C4",Accent="#E3B45A"};
+                case "national": return light ? new SkinDef{Bg1="#FFFFFF",Bg2="#FFE6DE",Text="#4A1B15",Muted="#8A5A50",Accent="#C0392B"} : new SkinDef{Bg1="#3A1712",Bg2="#26100C",Text="#FFEDE8",Muted="#C99A90",Accent="#FF7A5A"};
+                default: return light ? new SkinDef{Bg1="#FFFFFF",Bg2="#EEF3F8",Text="#26313B",Muted="#6B7580",Accent="#26313B"} : new SkinDef{Bg1="#2A2D33",Bg2="#20242A",Text="#EDF0F4",Muted="#A6AFBA",Accent="#EDF0F4"};
+            }
+        }
+        static string DetectFestivalSkin() {
+            var it = Items.FirstOrDefault();
+            if (it == null) return "default";
+            var n = it.name ?? "";
+            if (n.Contains("圣诞")) return "christmas";
+            if (n.Contains("元旦") || n.Contains("新年")) return "newyear";
+            if (n.Contains("春节") || n.Contains("过年")) return "spring";
+            if (n.Contains("中秋")) return "midautumn";
+            if (n.Contains("国庆")) return "national";
+            return "default";
+        }
+        static string HexA(string alpha, string rgb) { return "#" + alpha + rgb.TrimStart('#'); }
+        static string ResolveSkinId() {
+            string id = Config.skin;
+            if (string.IsNullOrEmpty(id)) return "default";
+            if (id == "auto") return DetectFestivalSkin();
+            return id;
+        }
+        static void AddPoly(Canvas c, string pts, Color fill) {
+            var coll = new PointCollection();
+            foreach (var pair in pts.Split(' ')) {
+                var xy = pair.Split(',');
+                coll.Add(new Point(double.Parse(xy[0], CultureInfo.InvariantCulture), double.Parse(xy[1], CultureInfo.InvariantCulture)));
+            }
+            c.Children.Add(new System.Windows.Shapes.Polygon { Points = coll, Fill = new SolidColorBrush(fill) });
+        }
+        static Color C_(string hex) { return (Color)ColorConverter.ConvertFromString(hex); }
+        static FrameworkElement Decor() {
+            var cv = new Canvas { Width = 20, Height = 22 };
+            Color gold = C_("#E0B341"), green = C_("#2E7D4F"), red = C_("#D6452E");
+            switch (ActiveSkinId) {
+                case "christmas":
+                    var trunk = new System.Windows.Shapes.Rectangle { Width = 4, Height = 5, Fill = new SolidColorBrush(C_("#7A4A21")) };
+                    Canvas.SetLeft(trunk, 8); Canvas.SetTop(trunk, 16); cv.Children.Add(trunk);
+                    AddPoly(cv, "10,2 4,9 16,9", green);
+                    AddPoly(cv, "10,6 2,14 18,14", green);
+                    AddPoly(cv, "10,10 0,19 20,19", green);
+                    AddPoly(cv, "10,0 8.6,3 11.4,3", gold);
+                    return cv;
+                case "newyear":
+                    AddPoly(cv, "10,0 12.2,7 20,7 13.8,11.5 16,19 10,14.5 4,19 6.2,11.5 0,7 7.8,7", gold);
+                    var d1 = new System.Windows.Shapes.Ellipse { Width = 3, Height = 3, Fill = new SolidColorBrush(gold) }; Canvas.SetLeft(d1, 16); Canvas.SetTop(d1, 0); cv.Children.Add(d1);
+                    return cv;
+                case "spring":
+                    var cap1 = new System.Windows.Shapes.Rectangle { Width = 8, Height = 2, Fill = new SolidColorBrush(gold) }; Canvas.SetLeft(cap1, 6); Canvas.SetTop(cap1, 2); cv.Children.Add(cap1);
+                    var body = new System.Windows.Shapes.Ellipse { Width = 16, Height = 14, Fill = new SolidColorBrush(red) }; Canvas.SetLeft(body, 2); Canvas.SetTop(body, 4); cv.Children.Add(body);
+                    var cap2 = new System.Windows.Shapes.Rectangle { Width = 8, Height = 2, Fill = new SolidColorBrush(gold) }; Canvas.SetLeft(cap2, 6); Canvas.SetTop(cap2, 18); cv.Children.Add(cap2);
+                    var tassel = new System.Windows.Shapes.Rectangle { Width = 1, Height = 4, Fill = new SolidColorBrush(gold) }; Canvas.SetLeft(tassel, 10); Canvas.SetTop(tassel, 20); cv.Children.Add(tassel);
+                    return cv;
+                case "midautumn":
+                    var moon = new System.Windows.Shapes.Ellipse { Width = 16, Height = 16, Fill = new SolidColorBrush(C_("#F0D48A")) }; Canvas.SetLeft(moon, 2); Canvas.SetTop(moon, 3); cv.Children.Add(moon);
+                    var d3 = new System.Windows.Shapes.Ellipse { Width = 2, Height = 2, Fill = new SolidColorBrush(gold) }; Canvas.SetLeft(d3, 0); Canvas.SetTop(d3, 0); cv.Children.Add(d3);
+                    return cv;
+                case "national":
+                    AddPoly(cv, "10,0 12.4,6.8 19.5,6.8 13.8,11 16,18 10,13.8 4,18 6.2,11 0.5,6.8 7.6,6.8", red);
+                    return cv;
+                default:
+                    return null;
+            }
+        }
         static TextBlock Text(string value, double size, Brush color)
         {
             return new TextBlock { Text = value, FontSize = size, Foreground = color, VerticalAlignment = VerticalAlignment.Center };
@@ -243,9 +319,19 @@ namespace CountdownWidget
         static void Build()
         {
             Light = IsLight();
-            Root.Background = Brush(Light ? (Config.glass ? "#EFF7F8FA" : "#F7F8FA") : (Config.glass ? "#F0292D33" : "#292D33"));
-            Root.BorderBrush = Brush(Light ? "#20000000" : "#28FFFFFF");
+            ActiveSkinId = ResolveSkinId();
+            var sk = PickSkin(ActiveSkinId, Light);
+            _skinText = sk.Text; _skinMuted = sk.Muted; _skinAccent = sk.Accent;
+            string a = Config.glass ? "E8" : "FF";
+            var gb = new LinearGradientBrush();
+            gb.StartPoint = new Point(0, 0); gb.EndPoint = new Point(0, 1);
+            gb.GradientStops.Add(new GradientStop((Color)ColorConverter.ConvertFromString(HexA(a, sk.Bg1)), 0));
+            gb.GradientStops.Add(new GradientStop((Color)ColorConverter.ConvertFromString(HexA(a, sk.Bg2)), 1));
+            Root.Background = gb;
+            Root.BorderBrush = Brush(Light ? "#26000000" : "#33FFFFFF");
             Host.Children.Clear(); Slots.Clear();
+            var deco = Decor();
+            if (deco != null) { deco.VerticalAlignment = VerticalAlignment.Center; deco.Margin = new Thickness(10, 0, 2, 0); Host.Children.Add(deco); }
             Items = Config.items.Where(i => i != null && i.enabled && ParseDate(i.date).HasValue).OrderBy(i => ParseDate(i.date).Value).ToList();
             if (Index >= Items.Count) Index = 0;
             W.ContextMenu = Menu();
@@ -284,7 +370,7 @@ namespace CountdownWidget
                 slot.Item2.Text = value;
                 bool numeric = value != "已到期" && value != "今天";
                 slot.Item2.FontSize = numeric ? 17 : 13;
-                slot.Item2.Foreground = target <= now ? Muted : Ink;
+                slot.Item2.Foreground = target <= now ? Muted : ValueInk;
                 slot.Item3.Text = !numeric ? "" : Config.show_seconds ? "天  " + (target - now).ToString(@"hh\:mm\:ss") : "天";
             }
         }
@@ -346,3 +432,4 @@ namespace CountdownWidget
 
     }
 }
+

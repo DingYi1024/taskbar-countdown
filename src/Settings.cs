@@ -56,6 +56,12 @@ namespace CountdownWidget {
         for(int i=0;i<3;i++){var col=new StackPanel {Margin=new Thickness(0,0,i==2?0:16,0)};var cap=Label(labels[i],11,"Muted");cap.Margin=new Thickness(0,0,0,7);col.Children.Add(cap);col.Children.Add(fields[i]);Grid.SetColumn(col,i);grid.Children.Add(col);}
         mode.SelectionChanged+=(s,e)=>interval.IsEnabled=mode.SelectedIndex==1;interval.IsEnabled=mode.SelectedIndex==1;
         theme.SelectionChanged+=(s,e)=>{bool light=theme.SelectedIndex==1 || (theme.SelectedIndex==0 && Convert.ToInt32(Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize","SystemUsesLightTheme",1))!=0);SetPalette(editor,light);};
+        var skinBar=new StackPanel {Orientation=Orientation.Horizontal,Margin=new Thickness(0,16,0,0)};prefs.Children.Add(skinBar);
+        var skinCap=Label("皮肤 / 主题",11,"Muted");skinCap.Margin=new Thickness(0,0,10,0);skinCap.VerticalAlignment=VerticalAlignment.Center;skinBar.Children.Add(skinCap);
+        var skin=new ComboBox {Width=180};
+        skin.Items.Add("跟随最近节日");skin.Items.Add("默认");skin.Items.Add("圣诞 · 绿红");skin.Items.Add("元旦 · 蓝金");skin.Items.Add("春节 · 红金");skin.Items.Add("中秋 · 蓝月");skin.Items.Add("国庆 · 红金");
+        int si=1;switch(Config.skin){case "auto":si=0;break;case "christmas":si=2;break;case "newyear":si=3;break;case "spring":si=4;break;case "midautumn":si=5;break;case "national":si=6;break;default:si=1;break;}skin.SelectedIndex=si;
+        skinBar.Children.Add(skin);
         var toggles=new StackPanel {Orientation=Orientation.Horizontal,Margin=new Thickness(0,18,0,0)};prefs.Children.Add(toggles);
         var seconds=new CheckBox {Content="显示时分秒",IsChecked=Config.show_seconds,Margin=new Thickness(0,0,28,0)};
         var glass=new CheckBox {Content="半透明卡片",IsChecked=Config.glass};toggles.Children.Add(seconds);toggles.Children.Add(glass);
@@ -83,7 +89,7 @@ namespace CountdownWidget {
         preset.Click+=(s,e)=>{SetPalette(presetMenu,theme.SelectedIndex==1 || (theme.SelectedIndex==0 && IsLight()));presetMenu.PlacementTarget=preset;presetMenu.IsOpen=true;};
         save.Click+=(s,e)=>{
             int secs;if(!int.TryParse(interval.Text,out secs)||secs<2||secs>60){MessageBox.Show(editor,"轮播间隔请输入 2 到 60 之间的整数。","检查设置");interval.Focus();return;}
-            var next=new Cfg {display_mode=mode.SelectedIndex==1?"rotate":"expand",rotate_seconds=secs,theme=theme.SelectedIndex==1?"light":theme.SelectedIndex==2?"dark":"system",glass=glass.IsChecked==true,show_seconds=seconds.IsChecked==true};
+            var next=new Cfg {display_mode=mode.SelectedIndex==1?"rotate":"expand",rotate_seconds=secs,theme=theme.SelectedIndex==1?"light":theme.SelectedIndex==2?"dark":"system",skin=skin.SelectedIndex==0?"auto":skin.SelectedIndex==2?"christmas":skin.SelectedIndex==3?"newyear":skin.SelectedIndex==4?"spring":skin.SelectedIndex==5?"midautumn":skin.SelectedIndex==6?"national":"default",glass=glass.IsChecked==true,show_seconds=seconds.IsChecked==true};
             foreach(var row in rows){var date=ParseDate(row.Date.Text);if(string.IsNullOrWhiteSpace(row.Name.Text)||!date.HasValue){MessageBox.Show(editor,"请填写名称和有效日期，例如：2027-01-01 00:00。","检查日子");if(!date.HasValue)row.Date.Focus();else row.Name.Focus();return;}next.items.Add(new CfgItem {name=row.Name.Text.Trim(),date=date.Value.ToString("yyyy-MM-dd HH:mm:ss"),enabled=row.Enabled.IsChecked==true});}
             try{SaveConfig(next);editor.Close();}catch(Exception ex){MessageBox.Show(editor,"保存失败："+ex.Message);}
         };
