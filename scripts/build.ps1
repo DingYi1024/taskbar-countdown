@@ -8,7 +8,7 @@ if (-not (Test-Path -LiteralPath $compiler)) { throw 'The .NET Framework 4.x com
 $out = Join-Path $project 'dist'
 New-Item -ItemType Directory -Path $out -Force | Out-Null
 $refs = @('PresentationCore', 'PresentationFramework', 'WindowsBase') | ForEach-Object { '/r:' + (Join-Path $framework ('WPF\' + $_ + '.dll')) }
-& $compiler /nologo /target:winexe /optimize+ "/out:$out\Countdown.exe" "/win32icon:$project\assets\logo.ico" "/resource:$project\assets\logo.png,logo.png" "/resource:$project\src\Theme.xaml,Theme.xaml" /r:System.Web.Extensions.dll /r:System.Xaml.dll @refs "$project\src\Widget.cs" "$project\src\Settings.cs"
+& $compiler /nologo /target:winexe /optimize+ "/out:$out\Countdown.exe" "/win32icon:$project\assets\logo.ico" "/resource:$project\assets\logo.png,logo.png" "/resource:$project\src\Theme.xaml,Theme.xaml" /r:System.Web.Extensions.dll /r:System.Xaml.dll @refs "$project\src\Widget.cs" "$project\src\Settings.cs" "$project\src\ShareCard.cs"
 if ($LASTEXITCODE -ne 0) { throw 'Widget build failed.' }
 & $compiler /nologo /target:winexe /optimize+ "/out:$out\CountdownWatchdog.exe" "$project\src\Watchdog.cs"
 if ($LASTEXITCODE -ne 0) { throw 'Watchdog build failed.' }

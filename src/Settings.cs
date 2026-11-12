@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,88 +12,153 @@ using System.Windows.Controls.Primitives;
 
 namespace CountdownWidget {
  public static partial class Program {
+    static ResourceDictionary _themeDict;
+    static ImageSource _logo;
     static void SetPalette(FrameworkElement view, bool light) {
-        string[] keys = { "Canvas", "Surface", "Field", "Ink", "Muted", "Line", "Accent" };
-        string[] colors = light ? new[] { "#F3F5F7", "#FFFFFF", "#F4F6F8", "#24303D", "#76818E", "#DFE5EB", "#527BA6" } : new[] { "#1C2026", "#252B33", "#303843", "#EBF0F6", "#96A3B3", "#3C4653", "#678CB5" };
+        string[] keys = { "Canvas", "Surface", "Field", "Ink", "Muted", "Line", "Accent", "Danger" };
+        string[] colors = light ? new[] { "#F3F5F7", "#FFFFFF", "#F4F6F8", "#24303D", "#76818E", "#E0E5EC", "#527BA6", "#C85A4A" } : new[] { "#1C2026", "#252B33", "#303843", "#EBF0F6", "#96A3B3", "#343D49", "#678CB5", "#E07B6D" };
         for(int i=0;i<keys.Length;i++) view.Resources[keys[i]]=Brush(colors[i]);
     }
     static void Theme(FrameworkElement view, bool light) {
-        using(var stream=typeof(Program).Assembly.GetManifestResourceStream("Theme.xaml")) view.Resources.MergedDictionaries.Add((ResourceDictionary)XamlReader.Load(stream));
+        if(_themeDict==null) {
+            using(var stream=typeof(Program).Assembly.GetManifestResourceStream("Theme.xaml")) _themeDict=(ResourceDictionary)XamlReader.Load(stream);
+        }
+        if(!view.Resources.MergedDictionaries.Contains(_themeDict)) view.Resources.MergedDictionaries.Add(_themeDict);
         SetPalette(view, light);
     }
     static TextBlock Label(string text,double size,string color) { var t=new TextBlock {Text=text,FontSize=size,VerticalAlignment=VerticalAlignment.Center}; t.SetResourceReference(TextBlock.ForegroundProperty,color); return t; }
     static Button ActionButton(string text,Action action) {var b=new Button {Content=text}; b.Click+=(s,e)=>action();return b;}
-    static ImageSource Logo() { using(var stream=typeof(Program).Assembly.GetManifestResourceStream("logo.png")) { var image=BitmapFrame.Create(stream,BitmapCreateOptions.None,BitmapCacheOption.OnLoad);image.Freeze();return image; } }
-    sealed class EditRow {public CheckBox Enabled;public TextBox Name,Date;public Border View;}
+    static ImageSource Logo() {
+        if(_logo==null) {
+            using(var stream=typeof(Program).Assembly.GetManifestResourceStream("logo.png")) { var image=BitmapFrame.Create(stream,BitmapCreateOptions.None,BitmapCacheOption.OnLoad);image.Freeze();_logo=image; }
+        }
+        return _logo;
+    }
+    sealed class EditRow {public CheckBox Enabled;public TextBox Name,Date;public TextBlock Status;public Border View;}
     static void OpenSettings() {
         if(Editor!=null){Editor.Topmost=true;Editor.Activate();return;}
-        var editor=new Window {Title="倒计时设置",Width=790,Height=760,MinWidth=700,MinHeight=600,WindowStyle=WindowStyle.None,ResizeMode=ResizeMode.NoResize,AllowsTransparency=true,Background=Brushes.Transparent,WindowStartupLocation=WindowStartupLocation.CenterScreen,Topmost=true,ShowInTaskbar=true,FontFamily=new FontFamily("Microsoft YaHei UI, Segoe UI"),FontSize=12,UseLayoutRounding=true,Icon=Logo()};
+        var editor=new Window {Title="倒计时设置",Width=790,Height=740,MinWidth=700,MinHeight=600,WindowStyle=WindowStyle.None,ResizeMode=ResizeMode.NoResize,AllowsTransparency=true,Background=Brushes.Transparent,WindowStartupLocation=WindowStartupLocation.CenterScreen,Topmost=true,ShowInTaskbar=true,FontFamily=new FontFamily("Microsoft YaHei UI, Segoe UI"),FontSize=12,UseLayoutRounding=true,Icon=Logo()};
         editor.Height=Math.Min(editor.Height,SystemParameters.WorkArea.Height-30);Editor=editor;
         Theme(editor,IsLight());
         editor.Closed+=(s,e)=>Editor=null;
         var frame=new Border {CornerRadius=new CornerRadius(14),BorderThickness=new Thickness(1)};frame.SetResourceReference(Border.BackgroundProperty,"Canvas");frame.SetResourceReference(Border.BorderBrushProperty,"Line");editor.Content=frame;
         var outer=new DockPanel();frame.Child=outer;
-        var chrome=new DockPanel {Height=48,Margin=new Thickness(18,0,12,0)};DockPanel.SetDock(chrome,Dock.Top);outer.Children.Add(chrome);
+        var chrome=new DockPanel {Height=44,Margin=new Thickness(18,0,12,0),Background=Brushes.Transparent};DockPanel.SetDock(chrome,Dock.Top);outer.Children.Add(chrome);
+        chrome.MouseLeftButtonDown+=(s,e)=>{if(e.ChangedButton==MouseButton.Left && e.ButtonState==MouseButtonState.Pressed)editor.DragMove();};
         var close=ActionButton("✕",()=>editor.Close());close.Padding=new Thickness(13,6,13,6);close.Background=Brushes.Transparent;close.BorderThickness=new Thickness(0);close.ToolTip="关闭";DockPanel.SetDock(close,Dock.Right);chrome.Children.Add(close);
         var minimize=ActionButton("—",()=>editor.WindowState=WindowState.Minimized);minimize.Padding=close.Padding;minimize.Background=Brushes.Transparent;minimize.BorderThickness=new Thickness(0);minimize.ToolTip="最小化";DockPanel.SetDock(minimize,Dock.Right);chrome.Children.Add(minimize);
-        var brand=new StackPanel {Orientation=Orientation.Horizontal,Background=Brushes.Transparent};brand.Children.Add(new Image {Source=Logo(),Width=22,Height=22,Margin=new Thickness(0,0,9,0)});brand.Children.Add(Label("倒计时",12,"Muted"));brand.MouseLeftButtonDown+=(s,e)=>{if(e.ButtonState==MouseButtonState.Pressed)editor.DragMove();};chrome.Children.Add(brand);
-        var shell=new DockPanel {Margin=new Thickness(28,10,28,24)};outer.Children.Add(shell);
-        var footer=new DockPanel {Margin=new Thickness(0,18,0,0)};DockPanel.SetDock(footer,Dock.Bottom);shell.Children.Add(footer);
-        var save=ActionButton("保存并应用",()=>{});save.SetResourceReference(Button.BackgroundProperty,"Accent");save.Foreground=Brushes.White;save.BorderThickness=new Thickness(0);save.Padding=new Thickness(22,11,22,11);DockPanel.SetDock(save,Dock.Right);footer.Children.Add(save);
-        var cancel=ActionButton("取消",()=>editor.Close());cancel.Margin=new Thickness(0,0,10,0);DockPanel.SetDock(cancel,Dock.Right);footer.Children.Add(cancel);
+        var brand=new StackPanel {Orientation=Orientation.Horizontal,Background=Brushes.Transparent};brand.Children.Add(new Image {Source=Logo(),Width=20,Height=20,Margin=new Thickness(0,0,9,0)});brand.Children.Add(Label("倒计时",12,"Muted"));chrome.Children.Add(brand);
+        var shell=new DockPanel {Margin=new Thickness(28,6,28,22)};outer.Children.Add(shell);
+        var footer=new DockPanel {Margin=new Thickness(0,16,0,0)};DockPanel.SetDock(footer,Dock.Bottom);shell.Children.Add(footer);
+        var save=ActionButton("保存并应用",()=>{});save.SetResourceReference(Button.BackgroundProperty,"Accent");save.Foreground=Brushes.White;save.BorderThickness=new Thickness(0);save.Padding=new Thickness(22,10,22,10);DockPanel.SetDock(save,Dock.Right);footer.Children.Add(save);
+        var cancel=ActionButton("取消",()=>editor.Close());cancel.Margin=new Thickness(0,0,10,0);cancel.Padding=new Thickness(16,10,16,10);DockPanel.SetDock(cancel,Dock.Right);footer.Children.Add(cancel);
         footer.Children.Add(Label("让期待，留在眼前。",11,"Muted"));
         var top=new StackPanel();DockPanel.SetDock(top,Dock.Top);shell.Children.Add(top);
-        var title=Label("值得期待的日子",26,"Ink");title.FontWeight=FontWeights.SemiBold;top.Children.Add(title);
-        var intro=Label("安静地记录时间，认真地期待下一次相逢。",12,"Muted");intro.Margin=new Thickness(0,7,0,22);top.Children.Add(intro);
-        var panel=new Border {CornerRadius=new CornerRadius(10),Padding=new Thickness(18),Margin=new Thickness(0,0,0,22)};panel.SetResourceReference(Border.BackgroundProperty,"Surface");top.Children.Add(panel);
+        var title=Label("值得期待的日子",24,"Ink");title.FontWeight=FontWeights.SemiBold;top.Children.Add(title);
+        var intro=Label("安静地记录时间，认真地期待下一次相逢。",12,"Muted");intro.Margin=new Thickness(0,5,0,16);top.Children.Add(intro);
+        var panel=new Border {CornerRadius=new CornerRadius(10),Padding=new Thickness(18,15,18,15),Margin=new Thickness(0,0,0,16)};panel.SetResourceReference(Border.BackgroundProperty,"Surface");top.Children.Add(panel);
         var prefs=new StackPanel();panel.Child=prefs;
-        var section=Label("显示偏好",13,"Ink");section.FontWeight=FontWeights.SemiBold;section.Margin=new Thickness(0,0,0,12);prefs.Children.Add(section);
-        var grid=new Grid();prefs.Children.Add(grid);for(int i=0;i<3;i++)grid.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(i==2?0.7:1,GridUnitType.Star)});
+        var section=Label("显示偏好",13,"Ink");section.FontWeight=FontWeights.SemiBold;section.Margin=new Thickness(0,0,0,11);prefs.Children.Add(section);
+        var grid=new Grid();prefs.Children.Add(grid);
+        double[] prefCols={1.0,0.72,1.0,1.15};
+        foreach(double w in prefCols) grid.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(w,GridUnitType.Star)});
         var mode=new ComboBox();mode.Items.Add("并排显示");mode.Items.Add("逐个轮播");mode.SelectedIndex=Config.display_mode=="rotate"?1:0;
+        var interval=new TextBox {Text=Config.rotate_seconds.ToString(),MaxLength=2,Height=36,Padding=new Thickness(10,0,10,0)};
+        interval.SetResourceReference(Control.BackgroundProperty,"Field");
+        interval.SetResourceReference(Control.BorderBrushProperty,"Line");
         var theme=new ComboBox();theme.Items.Add("跟随系统");theme.Items.Add("浅色 · 云白");theme.Items.Add("深色 · 石墨");theme.SelectedIndex=Config.theme=="light"?1:Config.theme=="dark"?2:0;
-        var interval=new TextBox {Text=Config.rotate_seconds.ToString(),MaxLength=2};
-        FrameworkElement[] fields={mode,theme,interval};string[] labels={"显示方式","外观主题","轮播间隔 / 秒"};
-        for(int i=0;i<3;i++){var col=new StackPanel {Margin=new Thickness(0,0,i==2?0:16,0)};var cap=Label(labels[i],11,"Muted");cap.Margin=new Thickness(0,0,0,7);col.Children.Add(cap);col.Children.Add(fields[i]);Grid.SetColumn(col,i);grid.Children.Add(col);}
+        var skin=new ComboBox();
+        string[] skinIds={"auto","default","minimal","cream","celadon","aurora","christmas","newyear","spring","midautumn","national"};
+        string[] skinLabels={"跟随最近节日","默认 · 原生融肤","极简 · 悬浮无框","奶油 · 暖麦","晨雾 · 青瓷","极光 · 磨砂","圣诞 · 松霜","元旦 · 星序","春节 · 灯笺","中秋 · 月泊","国庆 · 朱锦"};
+        for(int i=0;i<skinLabels.Length;i++) skin.Items.Add(skinLabels[i]);
+        int si=Array.IndexOf(skinIds,string.IsNullOrEmpty(Config.skin)?"default":Config.skin);
+        skin.SelectedIndex=si>=0?si:1;
+        FrameworkElement[] fields={mode,interval,theme,skin};string[] labels={"显示方式","轮播间隔 / 秒","外观主题","皮肤 / 主题"};
+        for(int i=0;i<4;i++){var col=new StackPanel {Margin=new Thickness(0,0,i==3?0:12,0)};var cap=Label(labels[i],11,"Muted");cap.Margin=new Thickness(0,0,0,6);col.Children.Add(cap);col.Children.Add(fields[i]);Grid.SetColumn(col,i);grid.Children.Add(col);}
         mode.SelectionChanged+=(s,e)=>interval.IsEnabled=mode.SelectedIndex==1;interval.IsEnabled=mode.SelectedIndex==1;
-        theme.SelectionChanged+=(s,e)=>{bool light=theme.SelectedIndex==1 || (theme.SelectedIndex==0 && Convert.ToInt32(Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize","SystemUsesLightTheme",1))!=0);SetPalette(editor,light);};
-        var skinBar=new StackPanel {Orientation=Orientation.Horizontal,Margin=new Thickness(0,16,0,0)};prefs.Children.Add(skinBar);
-        var skinCap=Label("皮肤 / 主题",11,"Muted");skinCap.Margin=new Thickness(0,0,10,0);skinCap.VerticalAlignment=VerticalAlignment.Center;skinBar.Children.Add(skinCap);
-        var skin=new ComboBox {Width=180};
-        skin.Items.Add("跟随最近节日");skin.Items.Add("默认");skin.Items.Add("圣诞 · 绿红");skin.Items.Add("元旦 · 蓝金");skin.Items.Add("春节 · 红金");skin.Items.Add("中秋 · 蓝月");skin.Items.Add("国庆 · 红金");
-        int si=1;switch(Config.skin){case "auto":si=0;break;case "christmas":si=2;break;case "newyear":si=3;break;case "spring":si=4;break;case "midautumn":si=5;break;case "national":si=6;break;default:si=1;break;}skin.SelectedIndex=si;
-        skinBar.Children.Add(skin);
-        var toggles=new StackPanel {Orientation=Orientation.Horizontal,Margin=new Thickness(0,18,0,0)};prefs.Children.Add(toggles);
+        Func<bool> editorLight = () => theme.SelectedIndex == 1 || (theme.SelectedIndex == 0 && IsSystemLight());
+        theme.SelectionChanged+=(s,e)=>SetPalette(editor,editorLight());
+        var toggles=new StackPanel {Orientation=Orientation.Horizontal,Margin=new Thickness(0,14,0,0)};prefs.Children.Add(toggles);
         var seconds=new CheckBox {Content="显示时分秒",IsChecked=Config.show_seconds,Margin=new Thickness(0,0,28,0)};
         var glass=new CheckBox {Content="半透明卡片",IsChecked=Config.glass};toggles.Children.Add(seconds);toggles.Children.Add(glass);
-        var listTitle=new DockPanel {Margin=new Thickness(0,0,0,10)};top.Children.Add(listTitle);var listLabel=Label("我的日子",14,"Ink");listLabel.FontWeight=FontWeights.SemiBold;listTitle.Children.Add(listLabel);var count=Label("",11,"Muted");count.HorizontalAlignment=HorizontalAlignment.Right;listTitle.Children.Add(count);
-        var captions=new Grid {Margin=new Thickness(14,0,14,8)};top.Children.Add(captions);captions.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(50)});captions.ColumnDefinitions.Add(new ColumnDefinition());captions.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(220)});captions.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(54)});
-        string[] headers={"显示","名称","目标日期与时间",""};for(int i=0;i<4;i++){var label=Label(headers[i],10,"Muted");Grid.SetColumn(label,i);captions.Children.Add(label);}
-        var addBar=new DockPanel {Margin=new Thickness(0,12,0,0)};DockPanel.SetDock(addBar,Dock.Bottom);shell.Children.Add(addBar);
+        var motion=new CheckBox {Content="动态效果",IsChecked=Config.motion,Margin=new Thickness(28,0,0,0),ToolTip="节日装饰轻柔呼吸；锁屏或窗口隐藏时暂停。"};toggles.Children.Add(motion);
+        var listTitle=new DockPanel {Margin=new Thickness(0,0,0,8)};top.Children.Add(listTitle);var listLabel=Label("我的日子",14,"Ink");listLabel.FontWeight=FontWeights.SemiBold;listTitle.Children.Add(listLabel);var count=Label("",11,"Muted");count.HorizontalAlignment=HorizontalAlignment.Right;listTitle.Children.Add(count);
+        Action<Grid> setRowCols = g => {
+            g.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(50)});
+            g.ColumnDefinitions.Add(new ColumnDefinition());
+            g.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(185)});
+            g.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(74)});
+            g.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(46)});
+            g.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(46)});
+        };
+        var captions=new Grid {Margin=new Thickness(2,0,16,6)};top.Children.Add(captions);setRowCols(captions);
+        string[] headers={"显示","名称","目标日期与时间","剩余","",""};
+        for(int i=0;i<6;i++){
+            var label=Label(headers[i],10,"Muted");
+            if(i==1 || i==2) label.Margin=new Thickness(8,0,12,0);
+            else if(i==3) { label.HorizontalAlignment=HorizontalAlignment.Right; label.Margin=new Thickness(0,0,8,0); }
+            Grid.SetColumn(label,i);captions.Children.Add(label);
+        }
+        var addBar=new DockPanel {Margin=new Thickness(0,10,0,0)};DockPanel.SetDock(addBar,Dock.Bottom);shell.Children.Add(addBar);
         var add=ActionButton("＋ 添加日子",()=>{});DockPanel.SetDock(add,Dock.Left);addBar.Children.Add(add);
         var preset=ActionButton("节日预设  ⌄",()=>{});preset.Margin=new Thickness(8,0,0,0);DockPanel.SetDock(preset,Dock.Left);addBar.Children.Add(preset);
-        var hint=Label("年-月-日 时:分",10,"Muted");hint.HorizontalAlignment=HorizontalAlignment.Right;addBar.Children.Add(hint);
-        var list=new StackPanel();shell.Children.Add(new ScrollViewer {Content=list,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled});
+        var shareAll=ActionButton("生成社交卡片",()=>{});shareAll.Margin=new Thickness(8,0,0,0);DockPanel.SetDock(shareAll,Dock.Left);addBar.Children.Add(shareAll);
+        var hint=Label("格式：年-月-日 时:分   ·   Ctrl+S 保存",10,"Muted");hint.HorizontalAlignment=HorizontalAlignment.Right;addBar.Children.Add(hint);
+        var list=new StackPanel {Margin=new Thickness(0,0,14,0)};shell.Children.Add(new ScrollViewer {Content=list,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled});
         var rows=new List<EditRow>();Action updateCount=()=>count.Text=rows.Count(r=>r.Enabled.IsChecked==true)+" 个显示 · "+rows.Count+" 个日子";
+        Func<string> selectedSkinId = () => (skin.SelectedIndex>=0 && skin.SelectedIndex<skinIds.Length) ? skinIds[skin.SelectedIndex] : "default";
+        Action<EditRow> openShareFor = targetRow => {
+            var entries = new List<ShareEntry>();
+            int initial = -1;
+            foreach(var r in rows) {
+                var parsed = ParseDate(r.Date.Text);
+                if(!parsed.HasValue) continue;
+                if(r == targetRow) initial = entries.Count;
+                entries.Add(new ShareEntry { Name = string.IsNullOrWhiteSpace(r.Name.Text) ? "倒计时" : r.Name.Text.Trim(), Date = parsed.Value, Enabled = r.Enabled.IsChecked == true });
+            }
+            if(entries.Count == 0) { MessageBox.Show(editor, "请先填写至少一个有效日期的日子。", "生成社交卡片"); return; }
+            if(initial < 0) {
+                var now = DateTime.Now;
+                int best = -1;
+                for(int i=0;i<entries.Count;i++) {
+                    if(entries[i].Enabled && entries[i].Date > now && (best < 0 || entries[i].Date < entries[best].Date)) best = i;
+                }
+                initial = best >= 0 ? best : 0;
+            }
+            OpenShareCard(entries, initial, selectedSkinId(), editorLight());
+        };
+        shareAll.Click+=(s,e)=>openShareFor(null);
+        Action<EditRow> updateStatus=r=>{
+            var parsed=ParseDate(r.Date.Text);
+            if(!parsed.HasValue){r.Status.Text="日期无效";r.Status.SetResourceReference(TextBlock.ForegroundProperty,"Danger");return;}
+            var d=DayText(parsed.Value,DateTime.Now,false);
+            if(d=="已到期" || d=="今天"){r.Status.Text=d;r.Status.SetResourceReference(TextBlock.ForegroundProperty,d=="今天"?"Accent":"Muted");}
+            else{r.Status.Text=d+" 天后";r.Status.SetResourceReference(TextBlock.ForegroundProperty,"Muted");}
+        };
         Action<CfgItem> addRow=item=>{
-            var row=new EditRow();row.View=new Border {Padding=new Thickness(2,6,2,6),BorderThickness=new Thickness(0,0,0,1)};row.View.SetResourceReference(Border.BorderBrushProperty,"Line");
-            var line=new Grid();row.View.Child=line;line.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(50)});line.ColumnDefinitions.Add(new ColumnDefinition());line.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(220)});line.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(54)});
+            var row=new EditRow();row.View=new Border {Padding=new Thickness(2,5,2,5),BorderThickness=new Thickness(0,0,0,1)};row.View.SetResourceReference(Border.BorderBrushProperty,"Line");
+            var line=new Grid();row.View.Child=line;setRowCols(line);
             row.Enabled=new CheckBox {IsChecked=item.enabled,ToolTip="在任务栏显示"};line.Children.Add(row.Enabled);row.Enabled.Checked+=(s,e)=>updateCount();row.Enabled.Unchecked+=(s,e)=>updateCount();
             row.Name=new TextBox {Text=item.name,MaxLength=40,Margin=new Thickness(0,0,12,0),ToolTip="日子名称"};Grid.SetColumn(row.Name,1);line.Children.Add(row.Name);
             row.Date=new TextBox {Text=item.date,Margin=new Thickness(0,0,12,0),ToolTip="例如 2027-01-01 00:00"};Grid.SetColumn(row.Date,2);line.Children.Add(row.Date);
-            var remove=ActionButton("移除",()=>{rows.Remove(row);list.Children.Remove(row.View);updateCount();});remove.Padding=new Thickness(7);remove.Background=Brushes.Transparent;remove.BorderThickness=new Thickness(0);remove.SetResourceReference(Button.ForegroundProperty,"Muted");Grid.SetColumn(remove,3);line.Children.Add(remove);
+            row.Status=Label("",11,"Muted");row.Status.HorizontalAlignment=HorizontalAlignment.Right;row.Status.Margin=new Thickness(0,0,8,0);Grid.SetColumn(row.Status,3);line.Children.Add(row.Status);
+            row.Date.TextChanged+=(s,e)=>updateStatus(row);updateStatus(row);
+            var share=ActionButton("卡片",()=>openShareFor(row));share.Padding=new Thickness(6);share.Background=Brushes.Transparent;share.BorderThickness=new Thickness(0);share.SetResourceReference(Button.ForegroundProperty,"Accent");share.ToolTip="为此日子生成社交卡片";Grid.SetColumn(share,4);line.Children.Add(share);
+            var remove=ActionButton("移除",()=>{rows.Remove(row);list.Children.Remove(row.View);updateCount();});remove.Padding=new Thickness(6);remove.Background=Brushes.Transparent;remove.BorderThickness=new Thickness(0);remove.SetResourceReference(Button.ForegroundProperty,"Muted");Grid.SetColumn(remove,5);line.Children.Add(remove);
             rows.Add(row);list.Children.Add(row.View);updateCount();
         };
         foreach(var item in Config.items.Where(i=>i!=null))addRow(item);updateCount();
         add.Click+=(s,e)=>{addRow(new CfgItem {name="新的期待",date=DateTime.Today.AddDays(30).ToString("yyyy-MM-dd HH:mm"),enabled=true});rows.Last().Name.Focus();rows.Last().Name.SelectAll();rows.Last().View.BringIntoView();};
-        var presetMenu=new ContextMenu();Theme(presetMenu,IsLight());string[] names={"圣诞","元旦","春节","劳动节","中秋","国庆"};string[] dates={"2026-12-25","2027-01-01","2027-02-06","2027-05-01","2027-09-15","2027-10-01"};for(int i=0;i<names.Length;i++){int n=i;AddMenu(presetMenu,names[n]+"  "+dates[n],()=>addRow(new CfgItem {name=names[n],date=dates[n]+" 00:00",enabled=true}));}
-        preset.Click+=(s,e)=>{SetPalette(presetMenu,theme.SelectedIndex==1 || (theme.SelectedIndex==0 && IsLight()));presetMenu.PlacementTarget=preset;presetMenu.IsOpen=true;};
-        save.Click+=(s,e)=>{
+        var presetMenu=new ContextMenu();Theme(presetMenu,IsLight());string[] names={"圣诞","元旦","春节","劳动节","中秋","国庆"};string[] dates={"2026-12-25","2027-01-01","2027-02-06","2027-05-01","2027-09-15","2027-10-01"};for(int i=0;i<names.Length;i++){int n=i;AddMenu(presetMenu,names[n]+"  "+dates[n],()=>{addRow(new CfgItem {name=names[n],date=dates[n]+" 00:00",enabled=true});rows.Last().View.BringIntoView();});}
+        preset.Click+=(s,e)=>{SetPalette(presetMenu,editorLight());presetMenu.PlacementTarget=preset;presetMenu.IsOpen=true;};
+        Action doSave=()=>{
             int secs;if(!int.TryParse(interval.Text,out secs)||secs<2||secs>60){MessageBox.Show(editor,"轮播间隔请输入 2 到 60 之间的整数。","检查设置");interval.Focus();return;}
-            var next=new Cfg {display_mode=mode.SelectedIndex==1?"rotate":"expand",rotate_seconds=secs,theme=theme.SelectedIndex==1?"light":theme.SelectedIndex==2?"dark":"system",skin=skin.SelectedIndex==0?"auto":skin.SelectedIndex==2?"christmas":skin.SelectedIndex==3?"newyear":skin.SelectedIndex==4?"spring":skin.SelectedIndex==5?"midautumn":skin.SelectedIndex==6?"national":"default",glass=glass.IsChecked==true,show_seconds=seconds.IsChecked==true};
+            var next=new Cfg {display_mode=mode.SelectedIndex==1?"rotate":"expand",rotate_seconds=secs,theme=theme.SelectedIndex==1?"light":theme.SelectedIndex==2?"dark":"system",skin=selectedSkinId(),glass=glass.IsChecked==true,show_seconds=seconds.IsChecked==true,motion=motion.IsChecked==true};
             foreach(var row in rows){var date=ParseDate(row.Date.Text);if(string.IsNullOrWhiteSpace(row.Name.Text)||!date.HasValue){MessageBox.Show(editor,"请填写名称和有效日期，例如：2027-01-01 00:00。","检查日子");if(!date.HasValue)row.Date.Focus();else row.Name.Focus();return;}next.items.Add(new CfgItem {name=row.Name.Text.Trim(),date=date.Value.ToString("yyyy-MM-dd HH:mm:ss"),enabled=row.Enabled.IsChecked==true});}
             try{SaveConfig(next);editor.Close();}catch(Exception ex){MessageBox.Show(editor,"保存失败："+ex.Message);}
         };
-        editor.PreviewKeyDown+=(s,e)=>{if(e.Key==System.Windows.Input.Key.Escape)editor.Close();};
+        save.Click+=(s,e)=>doSave();
+        editor.PreviewKeyDown+=(s,e)=>{if(e.Key==Key.Escape)editor.Close();else if(e.Key==Key.S && Keyboard.Modifiers==ModifierKeys.Control){e.Handled=true;doSave();}};
         editor.Show();editor.Activate();
     }
  }
