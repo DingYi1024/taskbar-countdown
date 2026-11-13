@@ -238,9 +238,27 @@ namespace CountdownWidget
         }
 
         const int WM_WINDOWPOSCHANGING = 0x0046;
+        const int WM_SHOWWINDOW = 0x0018;
+        const int WM_SYSCOMMAND = 0x0112;
+        const int SC_MINIMIZE = 0xF020;
+        const uint SWP_NOSIZE = 0x0001;
+        const uint SWP_NOMOVE = 0x0002;
         const uint SWP_NOZORDER = 0x0004;
+        const uint SWP_NOACTIVATE = 0x0010;
+        const uint SWP_SHOWWINDOW = 0x0040;
+        const uint SWP_HIDEWINDOW = 0x0080;
+        const uint SWP_NOCOPYBITS = 0x0100;
+        const uint SWP_NOOWNERZORDER = 0x0200;
+
+        const uint EVENT_SYSTEM_FOREGROUND = 0x0003;
+        const uint WINEVENT_OUTOFCONTEXT = 0x0000;
+
         static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
         static readonly uint MsgTaskbarCreated = RegisterWindowMessage("TaskbarCreated");
+
+        delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
+        [DllImport("user32.dll")] static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr hmodWinEventProc, WinEventDelegate lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
+        [DllImport("user32.dll")] static extern bool UnhookWinEvent(IntPtr hWinEventHook);
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)] static extern uint RegisterWindowMessage(string lpString);
         [DllImport("user32.dll")] static extern IntPtr FindWindow(string cls, string title);
@@ -266,16 +284,52 @@ namespace CountdownWidget
                 SetWindowLong32(hwnd, -20, GetWindowLong32(hwnd, -20) | styleBits);
         }
 
+        static WinEventDelegate _foregroundDelegate;
+        static IntPtr _foregroundHook;
+
+        static void OnForegroundChanged(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
+        {
+            if (Hwnd != IntPtr.Zero && !Preview && !Dragging)
+            {
+                SetWindowPos(Hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOOWNERZORDER);
+            }
+        }
+
         static IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
+            if (!Preview)
+            {
+                if (msg == WM_SHOWWINDOW && wParam == IntPtr.Zero)
+                {
+                    handled = true;
+                    return IntPtr.Zero;
+                }
+                if (msg == WM_SYSCOMMAND && ((int)wParam & 0xFFF0) == SC_MINIMIZE)
+                {
+                    handled = true;
+                    return IntPtr.Zero;
+                }
+            }
+
             if (msg == WM_WINDOWPOSCHANGING)
             {
                 try
                 {
                     var wp = (WINDOWPOS)Marshal.PtrToStructure(lParam, typeof(WINDOWPOS));
-                    if ((wp.flags & SWP_NOZORDER) == 0 && wp.hwndInsertAfter != HWND_TOPMOST)
+                    bool modified = false;
+                    if (!Preview && (wp.flags & SWP_HIDEWINDOW) != 0)
                     {
-                        wp.hwndInsertAfter = HWND_TOPMOST;
+                        wp.flags &= ~SWP_HIDEWINDOW;
+                        wp.flags |= SWP_SHOWWINDOW;
+                        modified = true;
+                    }
+                    if ((wp.flags & SWP_NOCOPYBITS) == 0)
+                    {
+                        wp.flags |= SWP_NOCOPYBITS;
+                        modified = true;
+                    }
+                    if (modified)
+                    {
                         Marshal.StructureToPtr(wp, lParam, false);
                     }
                 }
@@ -285,10 +339,8 @@ namespace CountdownWidget
             {
                 try
                 {
-                    IntPtr tray = FindWindow("Shell_TrayWnd", null);
-                    if (tray != IntPtr.Zero) SetWindowLongPtr(hwnd, -8, tray);
                     Position();
-                    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, 0x13);
+                    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOOWNERZORDER);
                 }
                 catch { }
             }
@@ -653,10 +705,10 @@ namespace CountdownWidget
             };
             TextOptions.SetTextFormattingMode(W, TextFormattingMode.Display);
 
-            IntPtr tray = FindWindow("Shell_TrayWnd", null);
-            if (tray != IntPtr.Zero && !Preview)
+            if (!Preview)
             {
-                new WindowInteropHelper(W).Owner = tray;
+                _foregroundDelegate = OnForegroundChanged;
+                _foregroundHook = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, IntPtr.Zero, _foregroundDelegate, 0, 0, WINEVENT_OUTOFCONTEXT);
             }
 
             Root = new Border { CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(1), Padding = new Thickness(5, 0, 5, 0), MinHeight = 38 };
@@ -671,11 +723,7 @@ namespace CountdownWidget
             W.SourceInitialized += (s, e) =>
             {
                 Hwnd = new WindowInteropHelper(W).Handle;
-                if (!Preview)
-                {
-                    AddWindowExStyle(Hwnd, 0x08000000 | 0x80);
-                    if (tray != IntPtr.Zero) SetWindowLongPtr(Hwnd, -8, tray);
-                }
+                if (!Preview) AddWindowExStyle(Hwnd, 0x08000000 | 0x80);
                 var source = HwndSource.FromHwnd(Hwnd);
                 if (source != null) source.AddHook(WndProc);
             };
@@ -742,6 +790,11 @@ namespace CountdownWidget
             W.StateChanged += (s, e) => SyncStar();
             W.Closed += (s, e) =>
             {
+                if (_foregroundHook != IntPtr.Zero)
+                {
+                    UnhookWinEvent(_foregroundHook);
+                    _foregroundHook = IntPtr.Zero;
+                }
                 Microsoft.Win32.SystemEvents.SessionSwitch -= SessionChanged;
                 Microsoft.Win32.SystemEvents.UserPreferenceChanged -= PreferenceChanged;
                 StopStar();
@@ -1080,7 +1133,7 @@ namespace CountdownWidget
                     {
                         if (W.Opacity != 1) W.Opacity = 1;
                         if (!W.IsHitTestVisible) W.IsHitTestVisible = true;
-                        SetWindowPos(Hwnd, new IntPtr(-1), 0, 0, 0, 0, 0x13);
+                        SetWindowPos(Hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOOWNERZORDER);
                     }
                 }
 
