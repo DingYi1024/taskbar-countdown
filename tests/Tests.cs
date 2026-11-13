@@ -47,6 +47,12 @@ class Tests {
             var bmpNew = Program.RenderShareBitmap(sampleEntries, new Program.CardOpts { IsList = true, EntryIndex = 0, TemplateIndex = 0, RatioIndex = 0, SkinIndex = newSkin, Quote = "静候相逢", ShowDate = true, ShowWatermark = true }, "default");
             Check(bmpNew.PixelWidth == 1080 && bmpNew.PixelHeight == 1440, "new skin share card s=" + newSkin);
         }
+
+        // Verify DWM anti-flicker attributes
+        Check(Program.DWMWA_TRANSITIONS_FORCEDISABLED == 3, "dwm transitions forcedisabled attr");
+        Check(Program.DWMWA_DISALLOW_PEEK == 11, "dwm disallow peek attr");
+        Check(Program.DWMWA_EXCLUDED_FROM_PEEK == 12, "dwm excluded from peek attr");
+
         Console.WriteLine(count + " checks passed.");
     }
 }

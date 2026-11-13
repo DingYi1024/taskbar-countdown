@@ -247,11 +247,14 @@ namespace CountdownWidget
         const uint SWP_NOACTIVATE = 0x0010;
         const uint SWP_SHOWWINDOW = 0x0040;
         const uint SWP_HIDEWINDOW = 0x0080;
-        const uint SWP_NOCOPYBITS = 0x0100;
         const uint SWP_NOOWNERZORDER = 0x0200;
 
         const uint EVENT_SYSTEM_FOREGROUND = 0x0003;
         const uint WINEVENT_OUTOFCONTEXT = 0x0000;
+
+        public const int DWMWA_TRANSITIONS_FORCEDISABLED = 3;
+        public const int DWMWA_DISALLOW_PEEK = 11;
+        public const int DWMWA_EXCLUDED_FROM_PEEK = 12;
 
         static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
         static readonly uint MsgTaskbarCreated = RegisterWindowMessage("TaskbarCreated");
@@ -271,6 +274,8 @@ namespace CountdownWidget
         [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")] static extern IntPtr GetWindowLongPtr64(IntPtr hwnd, int index);
         [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")] static extern IntPtr SetWindowLongPtr64(IntPtr hwnd, int index, IntPtr value);
 
+        [DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
         static IntPtr SetWindowLongPtr(IntPtr hwnd, int index, IntPtr value)
         {
             return IntPtr.Size == 8 ? SetWindowLongPtr64(hwnd, index, value) : new IntPtr(SetWindowLong32(hwnd, index, value.ToInt32()));
@@ -289,9 +294,9 @@ namespace CountdownWidget
 
         static void OnForegroundChanged(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
         {
-            if (Hwnd != IntPtr.Zero && !Preview && !Dragging)
+            if (Hwnd != IntPtr.Zero && !Preview && !Dragging && hwnd != Hwnd)
             {
-                SetWindowPos(Hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOOWNERZORDER);
+                SetWindowPos(Hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
             }
         }
 
@@ -323,11 +328,6 @@ namespace CountdownWidget
                         wp.flags |= SWP_SHOWWINDOW;
                         modified = true;
                     }
-                    if ((wp.flags & SWP_NOCOPYBITS) == 0)
-                    {
-                        wp.flags |= SWP_NOCOPYBITS;
-                        modified = true;
-                    }
                     if (modified)
                     {
                         Marshal.StructureToPtr(wp, lParam, false);
@@ -339,8 +339,17 @@ namespace CountdownWidget
             {
                 try
                 {
+                    IntPtr tray = FindWindow("Shell_TrayWnd", null);
+                    if (tray != IntPtr.Zero)
+                    {
+                        SetWindowLongPtr(hwnd, -8, tray);
+                        int trueVal = 1;
+                        DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED, ref trueVal, sizeof(int));
+                        DwmSetWindowAttribute(hwnd, DWMWA_DISALLOW_PEEK, ref trueVal, sizeof(int));
+                        DwmSetWindowAttribute(hwnd, DWMWA_EXCLUDED_FROM_PEEK, ref trueVal, sizeof(int));
+                    }
                     Position();
-                    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOOWNERZORDER);
+                    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
                 }
                 catch { }
             }
@@ -705,6 +714,12 @@ namespace CountdownWidget
             };
             TextOptions.SetTextFormattingMode(W, TextFormattingMode.Display);
 
+            IntPtr tray = FindWindow("Shell_TrayWnd", null);
+            if (tray != IntPtr.Zero && !Preview)
+            {
+                new WindowInteropHelper(W).Owner = tray;
+            }
+
             if (!Preview)
             {
                 _foregroundDelegate = OnForegroundChanged;
@@ -723,7 +738,18 @@ namespace CountdownWidget
             W.SourceInitialized += (s, e) =>
             {
                 Hwnd = new WindowInteropHelper(W).Handle;
-                if (!Preview) AddWindowExStyle(Hwnd, 0x08000000 | 0x80);
+                if (!Preview)
+                {
+                    AddWindowExStyle(Hwnd, 0x08000000 | 0x80);
+                    if (tray != IntPtr.Zero)
+                    {
+                        SetWindowLongPtr(Hwnd, -8, tray);
+                    }
+                    int trueVal = 1;
+                    DwmSetWindowAttribute(Hwnd, DWMWA_TRANSITIONS_FORCEDISABLED, ref trueVal, sizeof(int));
+                    DwmSetWindowAttribute(Hwnd, DWMWA_DISALLOW_PEEK, ref trueVal, sizeof(int));
+                    DwmSetWindowAttribute(Hwnd, DWMWA_EXCLUDED_FROM_PEEK, ref trueVal, sizeof(int));
+                }
                 var source = HwndSource.FromHwnd(Hwnd);
                 if (source != null) source.AddHook(WndProc);
             };
@@ -786,8 +812,22 @@ namespace CountdownWidget
 
             Microsoft.Win32.SystemEvents.SessionSwitch += SessionChanged;
             Microsoft.Win32.SystemEvents.UserPreferenceChanged += PreferenceChanged;
-            W.IsVisibleChanged += (s, e) => SyncStar();
-            W.StateChanged += (s, e) => SyncStar();
+            W.IsVisibleChanged += (s, e) =>
+            {
+                if (!Preview && W.Visibility != Visibility.Visible)
+                {
+                    W.Visibility = Visibility.Visible;
+                }
+                SyncStar();
+            };
+            W.StateChanged += (s, e) =>
+            {
+                if (!Preview && W.WindowState != WindowState.Normal)
+                {
+                    W.WindowState = WindowState.Normal;
+                }
+                SyncStar();
+            };
             W.Closed += (s, e) =>
             {
                 if (_foregroundHook != IntPtr.Zero)
@@ -1133,7 +1173,7 @@ namespace CountdownWidget
                     {
                         if (W.Opacity != 1) W.Opacity = 1;
                         if (!W.IsHitTestVisible) W.IsHitTestVisible = true;
-                        SetWindowPos(Hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOOWNERZORDER);
+                        SetWindowPos(Hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
                     }
                 }
 
