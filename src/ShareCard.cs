@@ -52,7 +52,6 @@ namespace CountdownWidget
         static readonly FontFamily SerifFont = new FontFamily("Source Han Serif SC, Noto Serif SC, STSong, Georgia, Microsoft YaHei UI");
         static readonly FontFamily SansFont = new FontFamily("Microsoft YaHei UI, DengXian, Segoe UI");
         static readonly FontFamily MonoFont = new FontFamily("Consolas, Segoe UI");
-        static DrawingBrush _cachedDotGrid;
 
         static readonly ShareSkinChoice[] ShareSkinChoices = {
             new ShareSkinChoice { Label = "跟随当前皮肤", SkinId = null, Light = false },
@@ -203,46 +202,7 @@ namespace CountdownWidget
             return b;
         }
 
-        static DrawingBrush DotGridBrush()
-        {
-            if (_cachedDotGrid != null) return _cachedDotGrid;
-            var dot = new SolidColorBrush(Color.FromArgb(12, 0, 0, 0));
-            dot.Freeze();
-            var dg = new DrawingGroup();
-            dg.Children.Add(new GeometryDrawing(Brushes.Transparent, null, new RectangleGeometry(new Rect(0, 0, 20, 20))));
-            dg.Children.Add(new GeometryDrawing(dot, null, new EllipseGeometry(new Point(10, 10), 0.9, 0.9)));
-            var db = new DrawingBrush(dg) { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 20, 20), ViewportUnits = BrushMappingMode.Absolute };
-            db.Freeze();
-            _cachedDotGrid = db;
-            return db;
-        }
 
-        static Grid BuildBackdrop(int width, int height, string skinId, bool light, bool withDots)
-        {
-            var spec = FindSkin(skinId);
-            string oc1 = spec.Oc1, oc2 = spec.Oc2, g1 = spec.Glow1, g2 = spec.Glow2;
-            if (spec.Id == "default" && light) { oc1 = "#E9EFF6"; oc2 = "#D8E2EE"; g1 = "#FFFFFF"; g2 = "#9CB6D4"; }
-
-            var outerBg = new LinearGradientBrush(C_(oc1), C_(oc2), new Point(0, 0), new Point(1, 1));
-            outerBg.Freeze();
-            var root = new Grid { Width = width, Height = height, Background = outerBg, ClipToBounds = true, UseLayoutRounding = true };
-            System.Windows.Documents.TextElement.SetFontFamily(root, SansFont);
-
-            root.Children.Add(new Ellipse
-            {
-                Width = width * 1.15, Height = width * 1.15, Fill = SoftGlow(g1, 165),
-                HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(-width * 0.42, -width * 0.42, 0, 0)
-            });
-            root.Children.Add(new Ellipse
-            {
-                Width = width * 1.05, Height = width * 1.05, Fill = SoftGlow(g2, 95),
-                HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom,
-                Margin = new Thickness(0, 0, -width * 0.36, -width * 0.36)
-            });
-            if (withDots) root.Children.Add(new Rectangle { Fill = DotGridBrush() });
-            return root;
-        }
 
         static FrameworkElement BuildWatermark(bool show, Brush mutedBrush)
         {
@@ -472,7 +432,7 @@ namespace CountdownWidget
             return row;
         }
 
-        static Border BuildCardShell(Grid root, Thickness margin, double cornerRadius, SkinPalette sk, CardPalette p, bool glassStyle)
+        static Border BuildCardShell(Grid root, int w, int h, SkinPalette sk, CardPalette p, bool glassStyle)
         {
             var cardBg = glassStyle
                 ? new LinearGradientBrush(C_(HexA("F0", sk.Bg1)), C_(HexA("F8", sk.Bg2)), new Point(0, 0), new Point(1, 1))
@@ -485,16 +445,11 @@ namespace CountdownWidget
                 new Point(0, 0), new Point(1, 1));
             borderGrad.Freeze();
 
-            root.Children.Add(new Border
-            {
-                Margin = margin, CornerRadius = new CornerRadius(cornerRadius), Background = cardBg,
-                Effect = new DropShadowEffect { Color = Colors.Black, BlurRadius = 42, ShadowDepth = 12, Direction = 270, Opacity = p.Light ? 0.16 : 0.34 }
-            });
-
             var card = new Border
             {
-                Margin = margin, CornerRadius = new CornerRadius(cornerRadius), Background = cardBg,
-                BorderBrush = glassStyle ? (Brush)borderGrad : p.Hairline, BorderThickness = new Thickness(glassStyle ? 1.3 : 1.0)
+                Width = w, Height = h, CornerRadius = new CornerRadius(14), Background = cardBg,
+                BorderBrush = glassStyle ? (Brush)borderGrad : p.Hairline, BorderThickness = new Thickness(glassStyle ? 1.2 : 1.0),
+                ClipToBounds = true
             };
             root.Children.Add(card);
             return card;
@@ -645,9 +600,8 @@ namespace CountdownWidget
 
         static void BuildEditorialCard(Grid root, int w, int h, List<ShareEntry> entries, CardOpts opts, string skinId, SkinPalette sk, CardPalette p)
         {
-            var margin = opts.RatioIndex == 2 ? new Thickness(54, 38, 54, 38) : opts.RatioIndex == 1 ? new Thickness(44) : new Thickness(46, 48, 46, 48);
-            var card = BuildCardShell(root, margin, 18, sk, p, false);
-            var innerPad = new Border { Padding = opts.RatioIndex == 2 ? new Thickness(28, 22, 28, 20) : opts.RatioIndex == 1 ? new Thickness(24, 22, 24, 20) : new Thickness(28, 26, 28, 22) };
+            var card = BuildCardShell(root, w, h, sk, p, false);
+            var innerPad = new Border { Padding = opts.RatioIndex == 2 ? new Thickness(44, 28, 44, 24) : (opts.RatioIndex == 1 ? new Thickness(32, 28, 32, 24) : new Thickness(36, 34, 36, 28)) };
             card.Child = innerPad;
 
             var now = DateTime.Now;
@@ -720,7 +674,7 @@ namespace CountdownWidget
                     var center = new StackPanel { VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left };
                     centerGrid.Children.Add(center);
                     center.Children.Add(new Border { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 10), Child = BuildPill("NEXT MILESTONE · " + RelativeSpanTag(entry.Date, now), p, true) });
-                    center.Children.Add(new TextBlock { Text = string.IsNullOrWhiteSpace(entry.Name) ? "倒计时" : entry.Name, FontFamily = SerifFont, FontSize = opts.RatioIndex == 1 ? 26 : 34, FontWeight = FontWeights.Bold, Foreground = p.Text, TextWrapping = TextWrapping.Wrap, MaxWidth = w - 180 });
+                    center.Children.Add(new TextBlock { Text = string.IsNullOrWhiteSpace(entry.Name) ? "倒计时" : entry.Name, FontFamily = SerifFont, FontSize = opts.RatioIndex == 1 ? 26 : 34, FontWeight = FontWeights.Bold, Foreground = p.Text, TextWrapping = TextWrapping.Wrap, MaxWidth = w - 140 });
 
                     var metric = BuildHeroDayMetric(dayStr, isNum, HeroNumberSize(opts.RatioIndex, dayStr), "天后", SerifFont, 16, new Thickness(8, 0, 0, opts.RatioIndex == 1 ? 12 : 16), "就是今天", "已如约而至", SerifFont, opts.RatioIndex == 1 ? 32 : 40, p, false, true);
                     metric.Margin = isNum ? new Thickness(0, opts.RatioIndex == 1 ? 8 : 12, 0, 0) : new Thickness(0, 18, 0, 10);
@@ -824,31 +778,25 @@ namespace CountdownWidget
 
         static void BuildAtmosphereCard(Grid root, int w, int h, List<ShareEntry> entries, CardOpts opts, string skinId, SkinPalette sk, CardPalette p)
         {
-            var margin = opts.RatioIndex == 2 ? new Thickness(54, 38, 54, 38) : opts.RatioIndex == 1 ? new Thickness(44) : new Thickness(46, 48, 46, 48);
-            var card = BuildCardShell(root, margin, 22, sk, p, true);
-
-            double innerW = Math.Max(1, w - margin.Left - margin.Right - 2.6);
-            double innerH = Math.Max(1, h - margin.Top - margin.Bottom - 2.6);
-            var innerClip = new RectangleGeometry(new Rect(0, 0, innerW, innerH), 20.5, 20.5);
-            innerClip.Freeze();
-            var cardGrid = new Grid { ClipToBounds = true, Clip = innerClip };
+            var card = BuildCardShell(root, w, h, sk, p, true);
+            var cardGrid = new Grid { ClipToBounds = true };
             card.Child = cardGrid;
 
-            double artSize = opts.RatioIndex == 2 ? 220 : (opts.RatioIndex == 1 ? 210 : 265);
+            double artSize = opts.RatioIndex == 2 ? 260 : (opts.RatioIndex == 1 ? 230 : 290);
             cardGrid.Children.Add(new Border
             {
                 Child = BuildAmbientArt(skinId, p.DetailHex, artSize, skinId == "default" ? 0.11 : 0.17),
                 HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom,
-                Margin = new Thickness(0, 0, -artSize * 0.12, -artSize * 0.10)
+                Margin = new Thickness(0, 0, -artSize * 0.10, -artSize * 0.08)
             });
             cardGrid.Children.Add(new Ellipse
             {
-                Width = 280, Height = 280, Fill = SoftGlow(p.DetailHex, skinId == "default" ? (byte)32 : (byte)55),
+                Width = 320, Height = 320, Fill = SoftGlow(p.DetailHex, skinId == "default" ? (byte)32 : (byte)55),
                 HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom,
-                Margin = new Thickness(0, 0, -70, -70), IsHitTestVisible = false
+                Margin = new Thickness(0, 0, -80, -80), IsHitTestVisible = false
             });
 
-            var contentPad = new Border { Padding = opts.RatioIndex == 2 ? new Thickness(30, 22, 30, 20) : opts.RatioIndex == 1 ? new Thickness(24, 22, 24, 20) : new Thickness(28, 26, 28, 22) };
+            var contentPad = new Border { Padding = opts.RatioIndex == 2 ? new Thickness(44, 28, 44, 24) : (opts.RatioIndex == 1 ? new Thickness(32, 28, 32, 24) : new Thickness(36, 34, 36, 28)) };
             cardGrid.Children.Add(contentPad);
 
             var now = DateTime.Now;
@@ -1015,38 +963,40 @@ namespace CountdownWidget
 
         static void BuildTicketCard(Grid root, int w, int h, List<ShareEntry> entries, CardOpts opts, string skinId, SkinPalette sk, CardPalette p)
         {
-            double mX = opts.RatioIndex == 2 ? 54 : 46;
-            double mY = opts.RatioIndex == 2 ? 38 : (opts.RatioIndex == 1 ? 42 : 48);
-            double cw = w - mX * 2, ch = h - mY * 2;
+            double cw = w, ch = h;
             double notchY = opts.RatioIndex == 0 ? ch * 0.74 : ch * 0.72;
-            double notchR = 13;
+            double notchR = 12;
 
             var notches = new GeometryGroup();
             notches.Children.Add(new EllipseGeometry(new Point(0, notchY), notchR, notchR));
             notches.Children.Add(new EllipseGeometry(new Point(cw, notchY), notchR, notchR));
-            var ticketGeo = new CombinedGeometry(GeometryCombineMode.Exclude, new RectangleGeometry(new Rect(0, 0, cw, ch), 18, 18), notches);
+            var ticketGeo = new CombinedGeometry(GeometryCombineMode.Exclude, new RectangleGeometry(new Rect(0, 0, cw, ch), 14, 14), notches);
             ticketGeo.Freeze();
 
             var cardBg = new LinearGradientBrush(C_(sk.Bg1), C_(sk.Bg2), new Point(0, 0), new Point(0, 1));
             cardBg.Freeze();
             var borderBrush = Brush(skinId != "default" ? HexA("68", p.DetailHex) : (p.Light ? "#22000000" : "#2EFFFFFF"));
 
-            var ticketHost = new Grid { Width = cw, Height = ch, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-            root.Children.Add(ticketHost);
-            ticketHost.Children.Add(new System.Windows.Shapes.Path { Data = ticketGeo, Fill = new SolidColorBrush(Color.FromArgb(p.Light ? (byte)42 : (byte)85, 0, 0, 0)), Margin = new Thickness(0, 10, 0, -10), Effect = new BlurEffect { Radius = 30 } });
-            ticketHost.Children.Add(new System.Windows.Shapes.Path { Data = ticketGeo, Fill = cardBg, Stroke = borderBrush, StrokeThickness = 1.2 });
+            var cardBorder = new System.Windows.Shapes.Path
+            {
+                Data = ticketGeo,
+                Fill = cardBg,
+                Stroke = borderBrush,
+                StrokeThickness = 1.2
+            };
+            root.Children.Add(cardBorder);
 
             var inner = new Grid { Width = cw, Height = ch, Clip = ticketGeo };
-            ticketHost.Children.Add(inner);
-            inner.Children.Add(new Border { Child = BuildAmbientArt(skinId, p.DetailHex, opts.RatioIndex == 2 ? 135 : 155, skinId == "default" ? 0.09 : 0.14), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 52, 20, 0) });
+            root.Children.Add(inner);
+            inner.Children.Add(new Border { Child = BuildAmbientArt(skinId, p.DetailHex, opts.RatioIndex == 2 ? 150 : 180, skinId == "default" ? 0.09 : 0.14), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 52, 20, 0) });
             inner.Children.Add(new Line { X1 = notchR + 8, X2 = cw - notchR - 8, Y1 = notchY, Y2 = notchY, Stroke = p.Hairline, StrokeThickness = 1.2, StrokeDashArray = new DoubleCollection { 4, 4 } });
 
             inner.RowDefinitions.Add(new RowDefinition { Height = new GridLength(notchY) });
             inner.RowDefinitions.Add(new RowDefinition { Height = new GridLength(ch - notchY) });
 
-            var topArea = new Border { Padding = opts.RatioIndex == 2 ? new Thickness(28, 20, 28, 16) : new Thickness(26, 22, 26, 16) };
+            var topArea = new Border { Padding = opts.RatioIndex == 2 ? new Thickness(44, 26, 44, 18) : new Thickness(36, 28, 36, 18) };
             Grid.SetRow(topArea, 0); inner.Children.Add(topArea);
-            var stubArea = new Border { Padding = opts.RatioIndex == 2 ? new Thickness(28, 12, 28, 14) : new Thickness(26, 14, 26, 16) };
+            var stubArea = new Border { Padding = opts.RatioIndex == 2 ? new Thickness(44, 14, 44, 18) : new Thickness(36, 16, 36, 18) };
             Grid.SetRow(stubArea, 1); inner.Children.Add(stubArea);
 
             var now = DateTime.Now;
@@ -1151,8 +1101,8 @@ namespace CountdownWidget
             var sk = PickSkinPalette(skinId, light);
             var palette = BuildPalette(skinId, sk, light, sk.Detail);
 
-            bool withDots = opts.TemplateIndex == 0 || opts.TemplateIndex == 2;
-            var root = BuildBackdrop(width, height, skinId, light, withDots);
+            var root = new Grid { Width = width, Height = height, ClipToBounds = true, UseLayoutRounding = true };
+            System.Windows.Documents.TextElement.SetFontFamily(root, SansFont);
 
             if (opts.TemplateIndex == 1) BuildAtmosphereCard(root, width, height, entries, opts, skinId, sk, palette);
             else if (opts.TemplateIndex == 2) BuildTicketCard(root, width, height, entries, opts, skinId, sk, palette);
@@ -1193,7 +1143,7 @@ namespace CountdownWidget
             outer.Children.Add(body);
 
             var previewPane = new Border { CornerRadius = new CornerRadius(12), Padding = new Thickness(16), BorderThickness = new Thickness(1) };
-            previewPane.SetResourceReference(Border.BackgroundProperty, "Surface");
+            previewPane.SetResourceReference(Border.BackgroundProperty, "Field");
             previewPane.SetResourceReference(Border.BorderBrushProperty, "Line");
             Grid.SetColumn(previewPane, 0); body.Children.Add(previewPane);
             var viewbox = new Viewbox { Stretch = Stretch.Uniform }; previewPane.Child = viewbox;
