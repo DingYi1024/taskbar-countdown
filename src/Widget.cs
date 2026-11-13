@@ -612,7 +612,7 @@ namespace CountdownWidget
                 Background = Brushes.Transparent,
                 WindowStartupLocation = owner != null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen,
                 Owner = owner,
-                Topmost = true,
+                Topmost = false,
                 ShowInTaskbar = owner == null,
                 FontFamily = new FontFamily("Microsoft YaHei UI, Segoe UI"),
                 FontSize = 12,

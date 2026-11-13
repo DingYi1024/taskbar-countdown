@@ -94,7 +94,12 @@ namespace CountdownWidget
 
         static void OpenSettings()
         {
-            if (Editor != null) { Editor.Topmost = true; Editor.Activate(); return; }
+            if (Editor != null)
+            {
+                if (Editor.WindowState == WindowState.Minimized) Editor.WindowState = WindowState.Normal;
+                Editor.Activate();
+                return;
+            }
 
             Window editor;
             var outer = CreateDialogChrome("倒计时设置", 790, 740, IsLight(), null, true, out editor, "倒计时");
