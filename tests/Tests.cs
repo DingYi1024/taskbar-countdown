@@ -72,19 +72,13 @@ class Tests {
             new Program.ShareEntry { Name = "寒假", Date = new DateTime(2027, 1, 16), Enabled = true }
         };
         int[,] expectedDims = { { 1080, 1440 }, { 1080, 1080 }, { 1600, 900 }, { 1080, 2340 } };
-        for (int t = 0; t < 5; t++) {
+        for (int t = 0; t < 6; t++) {
             for (int r = 0; r < 4; r++) {
-                var bmpSingle = Program.RenderShareBitmap(sampleEntries, new Program.CardOpts { IsList = false, EntryIndex = 1, TemplateIndex = t, RatioIndex = r, SkinIndex = 3, Quote = "安静地记录时间，认真地期待下一次相逢。", ShowDate = true, ShowWatermark = true, PaperTexture = true, RoundedCorners = false }, "christmas");
+                var bmpSingle = Program.RenderShareBitmap(sampleEntries, new Program.CardOpts { IsList = false, EntryIndex = 1, TemplateIndex = t, RatioIndex = r, Quote = "安静地记录时间，认真地期待下一次相逢。", ShowDate = true, ShowWatermark = true }, "christmas");
                 Check(bmpSingle.PixelWidth == expectedDims[r, 0] && bmpSingle.PixelHeight == expectedDims[r, 1], "single share card t=" + t + " r=" + r);
-                if (t < 4 && r < 3) {
-                    var bmpList = Program.RenderShareBitmap(sampleEntries, new Program.CardOpts { IsList = true, EntryIndex = 0, TemplateIndex = t, RatioIndex = r, SkinIndex = 5, Quote = "静候相逢", ShowDate = true, ShowWatermark = false, PaperTexture = true, RoundedCorners = true }, "spring");
-                    Check(bmpList.PixelWidth == expectedDims[r, 0] && bmpList.PixelHeight == expectedDims[r, 1], "list share card t=" + t + " r=" + r);
-                }
+                var bmpList = Program.RenderShareBitmap(sampleEntries, new Program.CardOpts { IsList = true, EntryIndex = 0, TemplateIndex = t, RatioIndex = r, Quote = "所有值得等待的事物，都配得上慢慢走来。", ShowDate = true, ShowWatermark = true }, "spring");
+                Check(bmpList.PixelWidth == expectedDims[r, 0] && bmpList.PixelHeight == expectedDims[r, 1], "list share card t=" + t + " r=" + r);
             }
-        }
-        foreach (int newSkin in new[] { 3, 4, 5, 8, 9, 10, 11, 12, 13 }) {
-            var bmpNew = Program.RenderShareBitmap(sampleEntries, new Program.CardOpts { IsList = false, EntryIndex = 1, TemplateIndex = 3, RatioIndex = 0, SkinIndex = newSkin, Quote = "静候相逢", ShowDate = true, ShowWatermark = true }, "default");
-            Check(bmpNew.PixelWidth == 1080 && bmpNew.PixelHeight == 1440, "new skin share card s=" + newSkin);
         }
 
         // Verify DWM anti-flicker & Win11 Backdrop attributes
