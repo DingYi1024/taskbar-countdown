@@ -13,7 +13,7 @@ New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 $tmpExe = "$stageDir\Countdown.exe"
 $widgetExe = "$out\Countdown.exe"
 $watchdogExe = "$out\CountdownWatchdog.exe"
-& $compiler /nologo /target:winexe /optimize+ "/out:$tmpExe" "/win32icon:$project\assets\logo.ico" "/resource:$project\assets\logo.png,logo.png" "/resource:$project\src\Theme.xaml,Theme.xaml" /r:System.Web.Extensions.dll /r:System.Xaml.dll @refs "$project\src\Widget.cs" "$project\src\Settings.cs" "$project\src\ShareCard.cs"
+& $compiler /nologo /target:winexe /optimize+ "/out:$tmpExe" "/win32icon:$project\assets\logo.ico" "/resource:$project\assets\logo.png,logo.png" "/resource:$project\src\Theme.xaml,Theme.xaml" /r:System.Web.Extensions.dll /r:System.Xaml.dll @refs "$project\src\TimeEngine.cs" "$project\src\DesignSystem.cs" "$project\src\Widget.cs" "$project\src\Flyout.cs" "$project\src\Settings.cs" "$project\src\ShareCard.cs"
 if ($LASTEXITCODE -ne 0) { Remove-Item -LiteralPath $stageDir -Recurse -Force -ErrorAction SilentlyContinue; throw 'Widget build failed.' }
 $watchdogRunning = @(Get-Process -Name CountdownWatchdog -ErrorAction SilentlyContinue | Where-Object { $_.Path -and ([string]::Equals($_.Path, $watchdogExe, [StringComparison]::OrdinalIgnoreCase)) }).Count -gt 0
 if ($watchdogRunning) {

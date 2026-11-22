@@ -19,60 +19,11 @@ using System.Windows.Threading;
 
 namespace CountdownWidget
 {
-    public class CfgItem
-    {
-        public string name { get; set; }
-        public string date { get; set; }
-        public bool enabled { get; set; }
-    }
-
-    public class Cfg
-    {
-        public string display_mode { get; set; }
-        public int rotate_seconds { get; set; }
-        public bool glass { get; set; }
-        public bool show_seconds { get; set; }
-        public string theme { get; set; }
-        public string skin { get; set; }
-        public bool motion { get; set; }
-        public List<CfgItem> items { get; set; }
-
-        public Cfg()
-        {
-            display_mode = "expand";
-            rotate_seconds = 4;
-            glass = true;
-            theme = "system";
-            skin = "default";
-            motion = true;
-            items = new List<CfgItem>();
-        }
-    }
-
     public static partial class Program
     {
-        sealed class SkinPalette
-        {
-            public string Bg1, Bg2, Text, Muted, Accent, Detail;
-        }
-
-        sealed class SkinSpec
-        {
-            public string Id, Label, Seal;
-            public bool LightDefault;
-            public SkinPalette LightPal, DarkPal;
-            public string Oc1, Oc2, Glow1, Glow2;
-        }
-
-        sealed class TimedItem
-        {
-            public CfgItem Item;
-            public DateTime Date;
-        }
-
         sealed class CountdownSlot
         {
-            public DateTime Target;
+            public ResolvedItem Entry;
             public TextBlock Value, Suffix;
         }
 
@@ -86,86 +37,25 @@ namespace CountdownWidget
         static readonly FontFamily WidgetNumFont = new FontFamily("Bahnschrift, Segoe UI Variable Display, Segoe UI");
         static readonly FontFamily WidgetMonoFont = new FontFamily("Consolas, Bahnschrift, Segoe UI");
 
-        static readonly SkinSpec[] SkinCatalog = {
-            new SkinSpec {
-                Id = "default", Label = "默认 · 原生融肤", Seal = null, LightDefault = false,
-                LightPal = new SkinPalette { Bg1 = "#FAFBFD", Bg2 = "#EEF2F7", Text = "#1D2733", Muted = "#637283", Accent = "#35689E", Detail = "#35689E" },
-                DarkPal  = new SkinPalette { Bg1 = "#232933", Bg2 = "#191E26", Text = "#F0F4F8", Muted = "#9AA6B5", Accent = "#7CB2E8", Detail = "#7CB2E8" },
-                Oc1 = "#CFD8E4", Oc2 = "#E4E8EF", Glow1 = "#FFFFFF", Glow2 = "#95A8C2"
-            },
-            new SkinSpec {
-                Id = "minimal", Label = "极简 · 悬浮无框", Seal = null, LightDefault = false,
-                LightPal = new SkinPalette { Bg1 = "#00FFFFFF", Bg2 = "#00FFFFFF", Text = "#1D2632", Muted = "#5A6574", Accent = "#2F669E", Detail = "#2F669E" },
-                DarkPal  = new SkinPalette { Bg1 = "#00000000", Bg2 = "#00000000", Text = "#F4F7FA", Muted = "#A7B3C2", Accent = "#84B9EC", Detail = "#84B9EC" },
-                Oc1 = "#CFD8E4", Oc2 = "#E4E8EF", Glow1 = "#FFFFFF", Glow2 = "#95A8C2"
-            },
-            new SkinSpec {
-                Id = "cream", Label = "奶油 · 暖麦", Seal = "暖麦", LightDefault = true,
-                LightPal = new SkinPalette { Bg1 = "#FCF8F2", Bg2 = "#F3EADF", Text = "#3A2B22", Muted = "#856F61", Accent = "#B56A36", Detail = "#B56A36" },
-                DarkPal  = new SkinPalette { Bg1 = "#2E251F", Bg2 = "#211A15", Text = "#F7EFE5", Muted = "#C2AEA0", Accent = "#E7AD6B", Detail = "#E7AD6B" },
-                Oc1 = "#EFE2D3", Oc2 = "#E3CBB2", Glow1 = "#FFF9F2", Glow2 = "#CFA17E"
-            },
-            new SkinSpec {
-                Id = "celadon", Label = "晨雾 · 青瓷", Seal = "青瓷", LightDefault = true,
-                LightPal = new SkinPalette { Bg1 = "#F2F7F4", Bg2 = "#E3EDE7", Text = "#1E352D", Muted = "#5B776D", Accent = "#35785F", Detail = "#35785F" },
-                DarkPal  = new SkinPalette { Bg1 = "#1A2B25", Bg2 = "#12201B", Text = "#EBF3EF", Muted = "#97B3A8", Accent = "#7EC5A7", Detail = "#7EC5A7" },
-                Oc1 = "#DCE7E0", Oc2 = "#C8D9CF", Glow1 = "#F8FCFA", Glow2 = "#8BB39E"
-            },
-            new SkinSpec {
-                Id = "aurora", Label = "极光 · 磨砂", Seal = "极光", LightDefault = false,
-                LightPal = new SkinPalette { Bg1 = "#EFF6FB", Bg2 = "#E2ECF7", Text = "#172A3E", Muted = "#58738E", Accent = "#2C799D", Detail = "#2C799D" },
-                DarkPal  = new SkinPalette { Bg1 = "#162638", Bg2 = "#141D33", Text = "#ECF5FB", Muted = "#8FB1C9", Accent = "#6ED2C8", Detail = "#6ED2C8" },
-                Oc1 = "#D4E3EE", Oc2 = "#E2E6F2", Glow1 = "#FFFFFF", Glow2 = "#7DBAC7"
-            },
-            new SkinSpec {
-                Id = "christmas", Label = "圣诞 · 松霜", Seal = "冬序", LightDefault = false,
-                LightPal = new SkinPalette { Bg1 = "#F3F7F4", Bg2 = "#E5EFE8", Text = "#1A372C", Muted = "#577568", Accent = "#286B51", Detail = "#A87424" },
-                DarkPal  = new SkinPalette { Bg1 = "#1C382F", Bg2 = "#122620", Text = "#F5EEDF", Muted = "#A9C0B2", Accent = "#E8CF92", Detail = "#E8CF92" },
-                Oc1 = "#D6E2DC", Oc2 = "#EAE5DA", Glow1 = "#FFFFFF", Glow2 = "#92B8A3"
-            },
-            new SkinSpec {
-                Id = "newyear", Label = "元旦 · 星序", Seal = "新岁", LightDefault = false,
-                LightPal = new SkinPalette { Bg1 = "#F2F6FC", Bg2 = "#E3EBF7", Text = "#1A2B45", Muted = "#5B7090", Accent = "#2E5E9C", Detail = "#2E5E9C" },
-                DarkPal  = new SkinPalette { Bg1 = "#203048", Bg2 = "#152135", Text = "#F2EEE5", Muted = "#AAB8CD", Accent = "#E6CD92", Detail = "#E6CD92" },
-                Oc1 = "#D5DFEC", Oc2 = "#EAE4D8", Glow1 = "#FFFFFF", Glow2 = "#9FB4D1"
-            },
-            new SkinSpec {
-                Id = "spring", Label = "春节 · 灯笺", Seal = "新春", LightDefault = true,
-                LightPal = new SkinPalette { Bg1 = "#FBF3E8", Bg2 = "#F4E3CE", Text = "#4F2D23", Muted = "#8A6557", Accent = "#B53F31", Detail = "#B53F31" },
-                DarkPal  = new SkinPalette { Bg1 = "#3D1D1C", Bg2 = "#2A1212", Text = "#FAF0E2", Muted = "#D4AFA3", Accent = "#F0C577", Detail = "#F0C577" },
-                Oc1 = "#F1E3D1", Oc2 = "#E4C9AD", Glow1 = "#FFF9F2", Glow2 = "#D1866E"
-            },
-            new SkinSpec {
-                Id = "midautumn", Label = "中秋 · 月泊", Seal = "秋夕", LightDefault = false,
-                LightPal = new SkinPalette { Bg1 = "#F5F6FA", Bg2 = "#E7EAF3", Text = "#212840", Muted = "#656D89", Accent = "#A87224", Detail = "#A87224" },
-                DarkPal  = new SkinPalette { Bg1 = "#242B42", Bg2 = "#191F33", Text = "#F1E9D7", Muted = "#ADB5C9", Accent = "#E5CE93", Detail = "#E5CE93" },
-                Oc1 = "#D9DFEB", Oc2 = "#EAE3D7", Glow1 = "#FFFFFF", Glow2 = "#A3B0CC"
-            },
-            new SkinSpec {
-                Id = "national", Label = "国庆 · 朱锦", Seal = "华诞", LightDefault = false,
-                LightPal = new SkinPalette { Bg1 = "#FCF3F1", Bg2 = "#F4E2DF", Text = "#4D1E1C", Muted = "#8B5B57", Accent = "#B33329", Detail = "#B33329" },
-                DarkPal  = new SkinPalette { Bg1 = "#612422", Bg2 = "#471918", Text = "#FFF1DC", Muted = "#DFB7AC", Accent = "#F1D28E", Detail = "#F1D28E" },
-                Oc1 = "#EFE2D7", Oc2 = "#E3C7BA", Glow1 = "#FFF8F2", Glow2 = "#C87A6D"
-            }
-        };
-
         static Cfg Config = new Cfg();
         static Window W, Editor, ShareWin;
-        static Border Root, DecorSlot;
+        static Border Root, DecorSlot, ProgressHairline;
+        static Grid RootGrid;
         static StackPanel Host, CardsHost;
+        static TranslateTransform CardsSlide;
         static IntPtr Hwnd;
         static DispatcherTimer MainTimer;
         static DateTime LastWrite;
-        static List<TimedItem> Items = new List<TimedItem>();
-        static TimedItem _rightClickedEntry;
+        static List<ResolvedItem> ResolvedItems = new List<ResolvedItem>();
+        static ResolvedItem _clickedEntry;
         static readonly List<CountdownSlot> Slots = new List<CountdownSlot>();
-        static bool Light, _systemLight = true, Dragging, Moved, Preview, MenuOpen, SessionLocked;
+        static bool Light, _systemLight = true, Dragging, Moved, Preview, MenuOpen, SessionLocked, _fullscreenHidden;
         static double Offset = 236, StartLeft;
         static int StartX, Index;
         static FrameworkElement Star;
         static AnimationClock StarClock;
         static string _renderedSkinId;
-        static bool _renderedLight, _renderedGlass;
+        static bool _renderedLight, _renderedGlass, _renderedProg;
         static string ActiveSkinId = "default";
         static Brush Ink = Brushes.Black, Muted = Brushes.Gray, ValueInk = Brushes.Black, DetailBrush = Brushes.Gold;
 
@@ -179,14 +69,14 @@ namespace CountdownWidget
         static void SyncStar()
         {
             if (Star == null || W == null) return;
-            bool pause = !Config.motion || SessionLocked || !W.IsVisible || W.Opacity <= 0 || W.WindowState == WindowState.Minimized;
+            bool pause = !Config.motion || SessionLocked || _fullscreenHidden || !W.IsVisible || W.Opacity <= 0 || W.WindowState == WindowState.Minimized;
             if (pause)
             {
                 if (StarClock != null) { StarClock.Controller.Remove(); Star.BeginAnimation(UIElement.OpacityProperty, null); StarClock = null; }
             }
             else if (StarClock == null)
             {
-                var breathing = new DoubleAnimation(ActiveSkinId == "midautumn" ? 0.75 : 0.55, 1.0, TimeSpan.FromSeconds(ActiveSkinId == "midautumn" ? 4 : 3))
+                var breathing = new DoubleAnimation(ActiveSkinId == "midautumn" ? 0.72 : 0.52, 1.0, TimeSpan.FromSeconds(ActiveSkinId == "midautumn" ? 4 : 3))
                 {
                     AutoReverse = true,
                     RepeatBehavior = RepeatBehavior.Forever,
@@ -203,7 +93,7 @@ namespace CountdownWidget
             if (MainTimer == null) return;
             var target = MenuOpen
                 ? TimeSpan.FromMilliseconds(100)
-                : TimeSpan.FromMilliseconds(Config.show_seconds ? 500 : 2000);
+                : TimeSpan.FromMilliseconds(Config.show_seconds ? 500 : 1800);
             if (MainTimer.Interval != target) MainTimer.Interval = target;
         }
 
@@ -257,13 +147,16 @@ namespace CountdownWidget
         public const int DWMWA_EXCLUDED_FROM_PEEK = 12;
 
         static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        static readonly IntPtr HWND_BROADCAST = new IntPtr(0xFFFF);
         static readonly uint MsgTaskbarCreated = RegisterWindowMessage("TaskbarCreated");
+        static readonly uint MsgWakeStudio = RegisterWindowMessage("TaskbarCountdownWakeStudio2027");
 
         delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
         [DllImport("user32.dll")] static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr hmodWinEventProc, WinEventDelegate lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
         [DllImport("user32.dll")] static extern bool UnhookWinEvent(IntPtr hWinEventHook);
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)] static extern uint RegisterWindowMessage(string lpString);
+        [DllImport("user32.dll")] static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
         [DllImport("user32.dll")] static extern IntPtr FindWindow(string cls, string title);
         [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
         [DllImport("user32.dll")] static extern bool GetCursorPos(out POINT point);
@@ -294,7 +187,7 @@ namespace CountdownWidget
 
         static void OnForegroundChanged(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
         {
-            if (Hwnd != IntPtr.Zero && !Preview && !Dragging && hwnd != Hwnd)
+            if (Hwnd != IntPtr.Zero && !Preview && !Dragging && !_fullscreenHidden && hwnd != Hwnd)
             {
                 SetWindowPos(Hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
             }
@@ -332,6 +225,14 @@ namespace CountdownWidget
                     {
                         Marshal.StructureToPtr(wp, lParam, false);
                     }
+                }
+                catch { }
+            }
+            else if (msg == MsgWakeStudio && !Preview)
+            {
+                try
+                {
+                    if (W != null) W.Dispatcher.BeginInvoke(new Action(() => OpenSettings(0)));
                 }
                 catch { }
             }
@@ -379,6 +280,9 @@ namespace CountdownWidget
             var c = Json.Deserialize<Cfg>(File.ReadAllText(ConfigPath)) ?? new Cfg();
             c.items = c.items ?? new List<CfgItem>();
             c.rotate_seconds = Math.Max(2, Math.Min(60, c.rotate_seconds));
+            if (string.IsNullOrEmpty(c.click_action)) c.click_action = "flyout";
+            if (string.IsNullOrEmpty(c.anchor)) c.anchor = "free";
+            if (string.IsNullOrEmpty(c.font_style)) c.font_style = "modern";
             return c;
         }
 
@@ -390,7 +294,7 @@ namespace CountdownWidget
             Config = c;
             LastWrite = File.GetLastWriteTimeUtc(ConfigPath);
             if (resetIndex) { Index = 0; RotationClock.Restart(); }
-            if (W != null) { if (fullRebuild) Build(true); else BuildCards(); SyncTimerInterval(); }
+            if (W != null) { if (fullRebuild) Build(true); else { RefreshResolved(); BuildCards(false); } SyncTimerInterval(); }
         }
 
         static bool ReadSystemLight()
@@ -414,7 +318,7 @@ namespace CountdownWidget
             return b;
         }
 
-        static SkinSpec FindSkin(string id)
+        public static SkinSpec FindSkin(string id)
         {
             if (string.IsNullOrEmpty(id)) id = "default";
             if (id == "auto") id = DetectFestivalSkin();
@@ -423,7 +327,7 @@ namespace CountdownWidget
             return SkinCatalog[0];
         }
 
-        static SkinPalette PickSkinPalette(string id, bool light)
+        public static SkinPalette PickSkinPalette(string id, bool light)
         {
             var spec = FindSkin(id);
             return light ? spec.LightPal : spec.DarkPal;
@@ -432,10 +336,10 @@ namespace CountdownWidget
         static string DetectFestivalSkin()
         {
             var now = DateTime.Now;
-            foreach (var it in Items)
+            foreach (var it in ResolvedItems)
             {
-                if (it.Date <= now) continue;
-                string id = FestivalForName(it.Item.name);
+                if (it.IsExpired || it.IsCountup) continue;
+                string id = FestivalForName(it.Name);
                 if (id != "default") return id;
             }
             return "default";
@@ -446,7 +350,7 @@ namespace CountdownWidget
             var n = name ?? "";
             if (n.Contains("圣诞")) return "christmas";
             if (n.Contains("元旦") || n.Contains("新年")) return "newyear";
-            if (n.Contains("春节") || n.Contains("过年")) return "spring";
+            if (n.Contains("春节") || n.Contains("过年") || n.Contains("除夕")) return "spring";
             if (n.Contains("中秋")) return "midautumn";
             if (n.Contains("国庆")) return "national";
             return "default";
@@ -456,7 +360,6 @@ namespace CountdownWidget
         static Color C_(string hex) { return (Color)ColorConverter.ConvertFromString(hex); }
         static string ResolveSkinId() { return FindSkin(Config.skin).Id; }
         static string DetailColorFor(string skinId, bool light) { return PickSkinPalette(skinId, light).Detail; }
-        static string DetailColorFor(string skinId) { return DetailColorFor(skinId, FindSkin(skinId).LightDefault); }
         static string DetailColor() { return DetailColorFor(ActiveSkinId, Light); }
 
         static void AddPoly(Canvas c, string pts, Color fill)
@@ -491,65 +394,78 @@ namespace CountdownWidget
         {
             star = null;
             if (skinId == "minimal" || skinId == "default") return null;
-            var canvas = new Canvas { Width = 26, Height = 28 };
+            var canvas = new Canvas { Width = 24, Height = 26 };
             string detail = DetailColorFor(skinId, light);
             switch (skinId)
             {
                 case "newyear":
                 case "aurora":
                     string subRay = skinId == "aurora" ? (light ? "#68A6B8" : "#5AA0C2") : (light ? "#7C9AC2" : "#8BA4C3");
-                    StrokePath(canvas, "M13,4 L13,24 M3,14 L23,14 M6.5,7.5 L19.5,20.5 M19.5,7.5 L6.5,20.5", subRay, 1.0);
-                    AddPoly(canvas, "13,5 14.9,11.6 21.5,14 14.9,16.4 13,23 11.1,16.4 4.5,14 11.1,11.6", C_(detail));
+                    StrokePath(canvas, "M12,4 L12,22 M3,13 L21,13 M6,7 L18,19 M18,7 L6,19", subRay, 0.95);
+                    AddPoly(canvas, "12,5 13.8,11 20,13 13.8,15 12,21 10.2,15 4,13 10.2,11", C_(detail));
                     star = (FrameworkElement)canvas.Children[canvas.Children.Count - 1];
                     break;
+                case "xuanpaper":
+                    var sealRect = new Border { Width = 16, Height = 16, CornerRadius = new CornerRadius(3), BorderBrush = Brush(detail), BorderThickness = new Thickness(1.2), Background = Brush(HexA("18", detail)) };
+                    sealRect.Child = new TextBlock { Text = "时", FontFamily = SerifFont, FontSize = 9.5, FontWeight = FontWeights.Bold, Foreground = Brush(detail), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                    Canvas.SetLeft(sealRect, 4); Canvas.SetTop(sealRect, 5); canvas.Children.Add(sealRect);
+                    star = sealRect;
+                    break;
+                case "vinyl":
+                    var disc = new System.Windows.Shapes.Ellipse { Width = 17, Height = 17, Stroke = Brush(detail), StrokeThickness = 1.4, Fill = Brush(HexA("24", detail)) };
+                    Canvas.SetLeft(disc, 3.5); Canvas.SetTop(disc, 4.5); canvas.Children.Add(disc);
+                    var centerDot = new System.Windows.Shapes.Ellipse { Width = 5, Height = 5, Fill = Brush(detail) };
+                    Canvas.SetLeft(centerDot, 9.5); Canvas.SetTop(centerDot, 10.5); canvas.Children.Add(centerDot);
+                    star = centerDot;
+                    break;
+                case "monet":
+                    var petal = StrokePath(canvas, "M12,5 C16,10 16,16 12,21 C8,16 8,10 12,5 Z", detail, 1.25);
+                    petal.Fill = Brush(HexA("24", detail));
+                    StrokePath(canvas, "M5,17 Q12,14 19,17", detail, 1.0);
+                    star = petal;
+                    break;
                 case "spring":
-                    StrokePath(canvas, "M13,1 L13,4 M8.5,5 L17.5,5 M8.5,23 L17.5,23 M13,24 L13,27 M10,25.5 L10,27 M16,25.5 L16,27", detail, 1.2);
-                    var lantern = StrokePath(canvas, "M13,5.5 C2,5.5 2,22.5 13,22.5 C24,22.5 24,5.5 13,5.5 Z", detail, 1.3);
+                    StrokePath(canvas, "M12,1.5 L12,4 M8,5 L16,5 M8,21 L16,21 M12,22 L12,25", detail, 1.15);
+                    var lantern = StrokePath(canvas, "M12,5.5 C2.5,5.5 2.5,20.5 12,20.5 C21.5,20.5 21.5,5.5 12,5.5 Z", detail, 1.25);
                     lantern.Fill = Brush(light ? "#28B53F31" : "#2CF0C577");
-                    StrokePath(canvas, "M10,6.5 C6.5,11 6.5,17 10,21.5 M16,6.5 C19.5,11 19.5,17 16,21.5", detail, 0.85);
-                    star = StrokePath(canvas, "M13,10.5 L13,17.5 M10,14 L16,14", light ? "#D88928" : "#FFE099", 1.5);
+                    star = StrokePath(canvas, "M12,10 L12,16 M9.5,13 L14.5,13", light ? "#D88928" : "#FFE099", 1.4);
                     break;
                 case "midautumn":
-                    var moon = new System.Windows.Shapes.Ellipse { Width = 17, Height = 17, Fill = Brush(detail) };
-                    Canvas.SetLeft(moon, 4.5); Canvas.SetTop(moon, 3); canvas.Children.Add(moon); star = moon;
-                    StrokePath(canvas, "M7.5,6.5 C5,11 6.8,16 10.5,17", light ? "#FFF6DF" : "#F6E6B9", 0.9);
-                    StrokePath(canvas, "M1.5,22 L8.5,22 C10.5,18.5 15.5,18.5 17.5,22 L24.5,22 M5,25.5 L21,25.5", light ? "#7B8AA8" : "#A4B5C6", 1.05);
+                    var moon = new System.Windows.Shapes.Ellipse { Width = 15, Height = 15, Fill = Brush(detail) };
+                    Canvas.SetLeft(moon, 4.5); Canvas.SetTop(moon, 3.5); canvas.Children.Add(moon); star = moon;
+                    StrokePath(canvas, "M2,21.5 L8,21.5 C10,18.5 14,18.5 16,21.5 L22,21.5", light ? "#7B8AA8" : "#A4B5C6", 1.0);
                     break;
                 case "national":
-                    var flag = StrokePath(canvas, "M3,25.5 L3,4 M4,5 C10.5,1.5 17,8.5 23.5,5 L23.5,19 C17,22.5 10.5,15.5 4,19", detail, 1.2);
+                    var flag = StrokePath(canvas, "M3,23.5 L3,4 M4,5 C10,2 16,8 22,5 L22,18 C16,21 10,15 4,18", detail, 1.15);
                     flag.Fill = Brush(light ? "#22B33329" : "#22F1D28E");
-                    AddPoly(canvas, "10.5,7 11.6,9.8 14.5,10 12.2,11.9 12.9,14.8 10.5,13.2 8.1,14.8 8.8,11.9 6.5,10 9.4,9.8", C_(detail));
+                    AddPoly(canvas, "10,7 11,9.5 13.5,9.7 11.5,11.4 12.1,14 10,12.5 7.9,14 8.5,11.4 6.5,9.7 9,9.5", C_(detail));
                     star = (FrameworkElement)canvas.Children[canvas.Children.Count - 1];
                     break;
                 case "cream":
-                    var sun = new System.Windows.Shapes.Ellipse { Width = 11, Height = 11, Fill = Brush(detail) };
-                    Canvas.SetLeft(sun, 7.5); Canvas.SetTop(sun, 5.5); canvas.Children.Add(sun); star = sun;
-                    StrokePath(canvas, "M3,20 L23,20 M6,23.5 L20,23.5", light ? "#C49E82" : "#9E826E", 1.15);
+                    var sun = new System.Windows.Shapes.Ellipse { Width = 10, Height = 10, Fill = Brush(detail) };
+                    Canvas.SetLeft(sun, 7); Canvas.SetTop(sun, 5.5); canvas.Children.Add(sun); star = sun;
+                    StrokePath(canvas, "M3,19 L21,19 M6,22 L18,22", light ? "#C49E82" : "#9E826E", 1.1);
                     break;
                 case "celadon":
-                    var leaf = StrokePath(canvas, "M5,22 C5,11 12,5 21,5 C21,14 15,22 5,22 Z", detail, 1.3);
+                    var leaf = StrokePath(canvas, "M4.5,21 C4.5,11 11,5 19.5,5 C19.5,13.5 14,21 4.5,21 Z", detail, 1.25);
                     leaf.Fill = Brush(light ? "#2235785F" : "#227EC5A7");
-                    StrokePath(canvas, "M5,22 C10,16.5 14.5,12 20,6", detail, 1.0);
+                    StrokePath(canvas, "M4.5,21 C9,16 13.5,11.5 18.5,6", detail, 0.95);
                     star = leaf;
                     break;
                 case "christmas":
                     string pine = light ? "#286B51" : "#8CC4A3";
                     var tree = new System.Windows.Shapes.Path
                     {
-                        Data = Geometry.Parse("M13,6 L8.5,12 L11,12 L6,18 L9.5,18 L4.5,23.5 L21.5,23.5 L16.5,18 L20,18 L15,12 L17.5,12 Z"),
+                        Data = Geometry.Parse("M12,6 L8,11.5 L10,11.5 L5.5,17 L8.8,17 L4.5,22 L19.5,22 L15.2,17 L18.5,17 L14,11.5 L16,11.5 Z"),
                         Fill = Brush(light ? "#2C286B51" : "#2C9CD4B5"),
                         Stroke = Brush(pine),
-                        StrokeThickness = 1.2,
-                        StrokeLineJoin = PenLineJoin.Round,
-                        StrokeStartLineCap = PenLineCap.Round,
-                        StrokeEndLineCap = PenLineCap.Round
+                        StrokeThickness = 1.15,
+                        StrokeLineJoin = PenLineJoin.Round
                     };
                     canvas.Children.Add(tree);
-                    StrokePath(canvas, "M13,23.5 L13,26.5", pine, 1.4);
-                    AddPoly(canvas, "13,0.5 13.9,2.8 16.2,3.6 13.9,4.4 13,6.7 12.1,4.4 9.8,3.6 12.1,2.8", C_(detail));
+                    StrokePath(canvas, "M12,22 L12,24.8", pine, 1.35);
+                    AddPoly(canvas, "12,1 12.8,3 15,3.7 12.8,4.4 12,6.5 11.2,4.4 9,3.7 11.2,3", C_(detail));
                     star = (FrameworkElement)canvas.Children[canvas.Children.Count - 1];
-                    var berry = new System.Windows.Shapes.Ellipse { Width = 3.5, Height = 3.5, Fill = Brush(light ? "#C44D3D" : "#D67B6E") };
-                    Canvas.SetLeft(berry, 9.5); Canvas.SetTop(berry, 16.5); canvas.Children.Add(berry);
                     break;
                 default:
                     return null;
@@ -557,149 +473,88 @@ namespace CountdownWidget
             return canvas;
         }
 
-        static FrameworkElement CreateDecor(string skinId, out FrameworkElement star)
-        {
-            return CreateDecor(skinId, FindSkin(skinId).LightDefault, out star);
-        }
-
         static TextBlock Text(string value, double size, Brush color)
         {
             return new TextBlock { Text = value, FontSize = size, Foreground = color, VerticalAlignment = VerticalAlignment.Center };
         }
 
-        static List<ShareEntry> BuildShareEntries<T>(IEnumerable<T> source, Func<T, string> nameOf, Func<T, string> dateOf, Func<T, bool> enabledOf, Func<T, bool> isPreferred, out int initialIndex)
+        static List<ResolvedItem> GetResolvedItems(DateTime now)
         {
-            var sorted = source
-                .Select(s => new { Src = s, Date = ParseDate(dateOf(s)) })
-                .Where(x => x.Date.HasValue)
-                .OrderBy(x => x.Date.Value)
+            var list = new List<ResolvedItem>();
+            if (Config == null || Config.items == null) return list;
+            foreach (var it in Config.items)
+            {
+                if (it == null || !it.enabled || it.archived) continue;
+                var res = ResolveItem(it, now);
+                if (res != null) list.Add(res);
+            }
+            // Ordering: Pinned first -> Today arrivals -> Upcoming by soonest -> Countups -> Expired
+            list = list
+                .OrderByDescending(x => !string.IsNullOrEmpty(Config.pinned_name) && string.Equals(x.Name, Config.pinned_name, StringComparison.Ordinal))
+                .ThenByDescending(x => x.IsToday)
+                .ThenBy(x => x.IsCountup ? 1 : (x.IsExpired ? 2 : 0))
+                .ThenBy(x => x.IsCountup ? -x.DaysValue : x.DaysValue)
+                .ThenBy(x => x.TargetDate)
                 .ToList();
-            var entries = new List<ShareEntry>(sorted.Count);
-            initialIndex = -1;
-            for (int i = 0; i < sorted.Count; i++)
-            {
-                var x = sorted[i];
-                if (isPreferred != null && isPreferred(x.Src)) initialIndex = i;
-                string rawName = nameOf(x.Src);
-                entries.Add(new ShareEntry
-                {
-                    Name = string.IsNullOrWhiteSpace(rawName) ? "倒计时" : rawName.Trim(),
-                    Date = x.Date.Value,
-                    Enabled = enabledOf(x.Src)
-                });
-            }
-            if (initialIndex < 0 && entries.Count > 0)
-            {
-                var now = DateTime.Now;
-                int best = -1;
-                for (int i = 0; i < entries.Count; i++)
-                    if (entries[i].Enabled && entries[i].Date > now && (best < 0 || entries[i].Date < entries[best].Date)) best = i;
-                initialIndex = best >= 0 ? best : 0;
-            }
-            return entries;
+            return list;
         }
 
-        static DockPanel CreateDialogChrome(string title, double width, double height, bool light, Window owner, bool showMinimize, out Window win, string headerLabel)
+        static void RefreshResolved()
         {
-            win = new Window
+            ResolvedItems = GetResolvedItems(DateTime.Now);
+        }
+
+        static void LoadPos()
+        {
+            try
             {
-                Title = title,
-                Width = width,
-                Height = Math.Min(height, SystemParameters.WorkArea.Height - 36),
-                WindowStyle = WindowStyle.None,
-                ResizeMode = ResizeMode.NoResize,
-                AllowsTransparency = true,
-                Background = Brushes.Transparent,
-                WindowStartupLocation = owner != null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen,
-                Owner = owner,
-                Topmost = false,
-                ShowInTaskbar = owner == null,
-                FontFamily = new FontFamily("Microsoft YaHei UI, Segoe UI"),
-                FontSize = 12,
-                UseLayoutRounding = true,
-                Icon = Logo()
-            };
-            Theme(win, light);
-
-            var frame = new Border { CornerRadius = new CornerRadius(14), BorderThickness = new Thickness(1) };
-            frame.SetResourceReference(Border.BackgroundProperty, "Canvas");
-            frame.SetResourceReference(Border.BorderBrushProperty, "Line");
-            win.Content = frame;
-
-            var outer = new DockPanel();
-            frame.Child = outer;
-
-            var targetWin = win;
-            var chrome = new DockPanel { Height = 44, Margin = new Thickness(18, 0, 12, 0), Background = Brushes.Transparent };
-            DockPanel.SetDock(chrome, Dock.Top);
-            outer.Children.Add(chrome);
-            chrome.MouseLeftButtonDown += (s, e) => { if (e.ChangedButton == MouseButton.Left && e.ButtonState == MouseButtonState.Pressed) targetWin.DragMove(); };
-
-            var close = ActionButton("✕", () => targetWin.Close());
-            close.Padding = new Thickness(13, 6, 13, 6);
-            close.Background = Brushes.Transparent;
-            close.BorderThickness = new Thickness(0);
-            close.ToolTip = "关闭";
-            DockPanel.SetDock(close, Dock.Right);
-            chrome.Children.Add(close);
-
-            if (showMinimize)
-            {
-                var min = ActionButton("—", () => targetWin.WindowState = WindowState.Minimized);
-                min.Padding = close.Padding;
-                min.Background = Brushes.Transparent;
-                min.BorderThickness = new Thickness(0);
-                min.ToolTip = "最小化";
-                DockPanel.SetDock(min, Dock.Right);
-                chrome.Children.Add(min);
+                if (!File.Exists(PosPath)) return;
+                var data = Json.Deserialize<Dictionary<string, object>>(File.ReadAllText(PosPath));
+                if (data != null && data.ContainsKey("offset")) Offset = Convert.ToDouble(data["offset"], CultureInfo.InvariantCulture);
             }
-
-            var brand = new StackPanel { Orientation = Orientation.Horizontal, Background = Brushes.Transparent };
-            brand.Children.Add(new Image { Source = Logo(), Width = 19, Height = 19, Margin = new Thickness(0, 0, 8, 0) });
-            brand.Children.Add(Label(headerLabel ?? title, 12, "Muted"));
-            chrome.Children.Add(brand);
-
-            return outer;
+            catch (Exception ex) { Log(ex); }
         }
 
         [STAThread]
         public static void Main(string[] args)
         {
-            Preview = args.Contains("--preview");
-            bool settings = args.Contains("--settings");
-            bool created;
-            using (var mutex = new Mutex(true, "Local\\DshCountdown" + (Preview ? "PreviewV2" : settings ? "SettingsV2" : "Wpf2027"), out created))
+            bool settings = args.Any(a => a == "--settings");
+            Preview = args.Any(a => a == "--preview");
+            bool first;
+            using (var mutex = new Mutex(true, settings ? "Local\\DshCountdownSettings2027" : Preview ? "Local\\DshCountdownPreview2027" : "Local\\DshCountdownWpf2027", out first))
             {
-                if (!created) return;
+                if (!first)
+                {
+                    // Single-instance friendly wake-up: clicking Countdown.exe again opens Studio!
+                    if (!Preview) PostMessage(HWND_BROADCAST, MsgWakeStudio, IntPtr.Zero, IntPtr.Zero);
+                    return;
+                }
                 try
                 {
+                    if (!File.Exists(ConfigPath))
+                    {
+                        var example = Path.Combine(Dir, "config.example.json");
+                        if (File.Exists(example)) File.Copy(example, ConfigPath, false);
+                    }
+                    Config = ReadConfig();
+                    LastWrite = File.Exists(ConfigPath) ? File.GetLastWriteTimeUtc(ConfigPath) : DateTime.MinValue;
                     _systemLight = ReadSystemLight();
-                    try { Config = ReadConfig(); LastWrite = File.GetLastWriteTimeUtc(ConfigPath); } catch (Exception ex) { Log(ex); }
+                    LoadPos();
                     var app = new Application();
                     app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-                    if (settings) { OpenSettings(); Editor.Closed += (s, e) => app.Shutdown(); }
+                    if (settings) { OpenSettings(0); Editor.Closed += (s, e) => app.Shutdown(); }
                     else CreateWidget();
                     app.Run();
                 }
-                catch (Exception ex) { Log(ex); MessageBox.Show("倒计时无法启动：" + ex.Message, "倒计时"); }
+                catch (Exception ex) { Log(ex); }
             }
         }
 
         static void CreateWidget()
         {
-            try
-            {
-                if (File.Exists(PosPath))
-                {
-                    var p = Json.Deserialize<Dictionary<string, double>>(File.ReadAllText(PosPath));
-                    if (p != null && p.ContainsKey("offset")) Offset = p["offset"];
-                }
-            }
-            catch (Exception ex) { Log(ex); }
-
             W = new Window
             {
-                Title = Preview ? "倒计时 · 预览" : "任务栏倒计时",
+                Title = Preview ? "拾光倒计时 · 预览" : "任务栏倒计时",
                 WindowStyle = WindowStyle.None,
                 AllowsTransparency = true,
                 Background = Brushes.Transparent,
@@ -726,13 +581,32 @@ namespace CountdownWidget
                 _foregroundHook = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, IntPtr.Zero, _foregroundDelegate, 0, 0, WINEVENT_OUTOFCONTEXT);
             }
 
-            Root = new Border { CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(1), Padding = new Thickness(5, 0, 5, 0), MinHeight = 38 };
+            Root = new Border { CornerRadius = new CornerRadius(10), BorderThickness = new Thickness(1), Padding = new Thickness(6, 0, 6, 0), MinHeight = 38, ClipToBounds = true };
+            RootGrid = new Grid();
+            Root.Child = RootGrid;
+
             Host = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
             DecorSlot = new Border { VerticalAlignment = VerticalAlignment.Center, Visibility = Visibility.Collapsed };
-            CardsHost = new StackPanel { Orientation = Orientation.Horizontal };
+            CardsSlide = new TranslateTransform(0, 0);
+            CardsHost = new StackPanel { Orientation = Orientation.Horizontal, RenderTransform = CardsSlide };
             Host.Children.Add(DecorSlot);
             Host.Children.Add(CardsHost);
-            Root.Child = Host;
+            RootGrid.Children.Add(Host);
+
+            // Bottom 2px ambient progress hairline
+            ProgressHairline = new Border
+            {
+                Height = 2,
+                CornerRadius = new CornerRadius(1),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                Margin = new Thickness(4, 0, 4, 1),
+                Opacity = 0.78,
+                IsHitTestVisible = false,
+                Visibility = Visibility.Collapsed
+            };
+            RootGrid.Children.Add(ProgressHairline);
+
             W.Content = Root;
 
             W.SourceInitialized += (s, e) =>
@@ -753,8 +627,10 @@ namespace CountdownWidget
                 var source = HwndSource.FromHwnd(Hwnd);
                 if (source != null) source.AddHook(WndProc);
             };
+
             W.MouseLeftButtonDown += (s, e) =>
             {
+                _clickedEntry = FindHitEntry(e.OriginalSource as DependencyObject);
                 POINT p; if (!GetCursorPos(out p)) return;
                 Dragging = true; Moved = false; StartX = p.X; StartLeft = W.Left; W.CaptureMouse();
             };
@@ -762,7 +638,7 @@ namespace CountdownWidget
             {
                 if (!Dragging) return;
                 POINT p; GetCursorPos(out p); double dx = (p.X - StartX) / ScaleX();
-                if (Math.Abs(dx) > 3) Moved = true;
+                if (Math.Abs(dx) > 4) Moved = true;
                 if (Moved) W.Left = StartLeft + dx;
             };
             W.MouseLeftButtonUp += (s, e) =>
@@ -771,30 +647,53 @@ namespace CountdownWidget
                 Dragging = false; W.ReleaseMouseCapture();
                 if (Moved)
                 {
+                    Config.anchor = "free";
                     RECT r; if (Taskbar(out r)) Offset = W.Left - r.Left / ScaleX();
                     Position();
                     try { File.WriteAllText(PosPath, Json.Serialize(new { offset = Offset })); } catch (Exception ex) { Log(ex); }
                 }
                 else
                 {
-                    Config.show_seconds = !Config.show_seconds;
-                    Persist(false, false);
+                    if (string.Equals(Config.click_action, "seconds", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Config.show_seconds = !Config.show_seconds;
+                        Persist(false, false);
+                    }
+                    else
+                    {
+                        ToggleFlyout(_clickedEntry);
+                    }
                 }
             };
             W.LostMouseCapture += (s, e) => Dragging = false;
-            W.MouseEnter += (s, e) => { if (ActiveSkinId == "minimal" && Root != null) Root.Background = Brush(Light ? "#1A000000" : "#1CFFFFFF"); };
-            W.MouseLeave += (s, e) => { if (ActiveSkinId == "minimal" && Root != null) Root.Background = Brush(Light ? "#01FFFFFF" : "#01000000"); };
+
+            // Mouse wheel scrolling on the taskbar pill cycles smoothly through moments!
+            W.PreviewMouseWheel += (s, e) =>
+            {
+                if (ResolvedItems.Count <= 1) return;
+                if (Config.display_mode == "single" || Config.display_mode == "rotate" || Config.display_mode == "dual")
+                {
+                    e.Handled = true;
+                    int dir = e.Delta < 0 ? 1 : -1;
+                    Index = (Index + dir + ResolvedItems.Count) % ResolvedItems.Count;
+                    RotationClock.Restart();
+                    BuildCards(true, dir);
+                }
+            };
+
+            W.MouseEnter += (s, e) =>
+            {
+                if (ActiveSkinId == "minimal" && Root != null) Root.Background = Brush(Light ? "#18000000" : "#1CFFFFFF");
+            };
+            W.MouseLeave += (s, e) =>
+            {
+                if (ActiveSkinId == "minimal" && Root != null) Root.Background = Brush(Light ? "#01FFFFFF" : "#01000000");
+            };
             W.PreviewMouseRightButtonUp += (s, e) =>
             {
                 e.Handled = true;
-                _rightClickedEntry = null;
-                var cur = e.OriginalSource as DependencyObject;
-                while (cur != null)
-                {
-                    var fe = cur as FrameworkElement;
-                    if (fe != null && fe.Tag is TimedItem) { _rightClickedEntry = (TimedItem)fe.Tag; break; }
-                    cur = (cur is Visual || cur is System.Windows.Media.Media3D.Visual3D) ? VisualTreeHelper.GetParent(cur) : LogicalTreeHelper.GetParent(cur);
-                }
+                CloseFlyout();
+                _clickedEntry = FindHitEntry(e.OriginalSource as DependencyObject);
                 var menu = W.ContextMenu;
                 if (menu != null)
                 {
@@ -830,6 +729,7 @@ namespace CountdownWidget
             };
             W.Closed += (s, e) =>
             {
+                CloseFlyout();
                 if (_foregroundHook != IntPtr.Zero)
                 {
                     UnhookWinEvent(_foregroundHook);
@@ -839,6 +739,8 @@ namespace CountdownWidget
                 Microsoft.Win32.SystemEvents.UserPreferenceChanged -= PreferenceChanged;
                 StopStar();
                 if (MainTimer != null) MainTimer.Stop();
+                if (Editor != null) { try { Editor.Close(); } catch { } }
+                if (ShareWin != null) { try { ShareWin.Close(); } catch { } }
                 Application.Current.Shutdown();
             };
             W.ContextMenu = Menu();
@@ -849,23 +751,26 @@ namespace CountdownWidget
             MainTimer.Start();
         }
 
-        static void OpenShareFromWidget()
+        static ResolvedItem FindHitEntry(DependencyObject cur)
         {
-            int initial;
-            var entries = BuildShareEntries(
-                Config.items.Where(i => i != null),
-                i => i.name, i => i.date, i => i.enabled,
-                i => _rightClickedEntry != null && ReferenceEquals(i, _rightClickedEntry.Item),
-                out initial);
-            OpenShareCard(entries, initial, Config.skin, IsLight());
+            while (cur != null)
+            {
+                var fe = cur as FrameworkElement;
+                if (fe != null && fe.Tag is ResolvedItem) return (ResolvedItem)fe.Tag;
+                cur = (cur is Visual || cur is System.Windows.Media.Media3D.Visual3D) ? VisualTreeHelper.GetParent(cur) : LogicalTreeHelper.GetParent(cur);
+            }
+            return null;
         }
 
         static ContextMenu Menu()
         {
-            var menu = new ContextMenu { PlacementTarget = Root, Placement = PlacementMode.Top, VerticalOffset = -8, MinWidth = 156 };
+            var menu = new ContextMenu { PlacementTarget = Root, Placement = PlacementMode.Top, VerticalOffset = -8, MinWidth = 172 };
             Theme(menu, IsLight());
-            AddMenu(menu, "生成社交卡片…", "M2,3.5 C2,2.7 2.7,2 3.5,2 L10.5,2 C11.3,2 12,2.7 12,3.5 L12,10.5 C12,11.3 11.3,12 10.5,12 L3.5,12 C2.7,12 2,11.3 2,10.5 Z M3.6,9.4 L5.8,7.0 L7.6,8.7 L9.2,7.2 L10.6,9.4", "Accent", OpenShareFromWidget);
-            AddMenu(menu, "设置…", "M2,4.5 L12,4.5 M2,9.5 L12,9.5 M5,2.8 L5,6.2 M9,7.8 L9,11.2", "Muted", OpenSettings);
+            AddMenu(menu, "展开期待浮层", "M3,11 L8,5 L13,11", "Accent", () => OpenFlyout(_clickedEntry));
+            AddMenu(menu, "生成社交卡片…", "M2,3.5 C2,2.7 2.7,2 3.5,2 L10.5,2 C11.3,2 12,2.7 12,3.5 L12,10.5 C12,11.3 11.3,12 10.5,12 L3.5,12 C2.7,12 2,11.3 2,10.5 Z M3.6,9.4 L5.8,7.0 L7.6,8.7 L9.2,7.2 L10.6,9.4", "Accent", () => OpenShareForResolved(_clickedEntry));
+            menu.Items.Add(new Separator());
+            AddMenu(menu, "拾光工作台（设置）…", "M2,4.5 L12,4.5 M2,9.5 L12,9.5 M5,2.8 L5,6.2 M9,7.8 L9,11.2", "Muted", () => OpenSettings(0));
+            AddMenu(menu, "外观画廊与换肤…", "M7,1.8 A5.2,5.2 0 1,0 12.2,7 C12.2,5.8 11.2,5.2 10.1,5.2 L9,5.2 C8.2,5.2 7.8,5.8 7.8,6.5", "Muted", () => OpenSettings(1));
             menu.Items.Add(new Separator());
             AddMenu(menu, "退出倒计时", "M4.2,3.8 C2.9,4.7 2.1,6.2 2.1,7.9 C2.1,10.6 4.3,12.8 7,12.8 C9.7,12.8 11.9,10.6 11.9,7.9 C11.9,6.2 11.1,4.7 9.8,3.8 M7,1.8 L7,6.8", "Danger", () =>
             {
@@ -921,15 +826,9 @@ namespace CountdownWidget
 
         static void Build(bool forceTheme = false)
         {
-            Items = Config.items
-                .Where(i => i != null && i.enabled)
-                .Select(i => new { Item = i, Date = ParseDate(i.date) })
-                .Where(x => x.Date.HasValue)
-                .OrderBy(x => x.Date.Value)
-                .Select(x => new TimedItem { Item = x.Item, Date = x.Date.Value })
-                .ToList();
+            RefreshResolved();
             ApplySkin(forceTheme);
-            BuildCards();
+            BuildCards(false);
             SyncStar();
         }
 
@@ -937,7 +836,7 @@ namespace CountdownWidget
         {
             Light = IsLight();
             ActiveSkinId = ResolveSkinId();
-            if (!force && _renderedSkinId == ActiveSkinId && _renderedLight == Light && _renderedGlass == Config.glass) return;
+            if (!force && _renderedSkinId == ActiveSkinId && _renderedLight == Light && _renderedGlass == Config.glass && _renderedProg == Config.show_progress_bar) return;
             var sk = PickSkinPalette(ActiveSkinId, Light);
             Ink = Brush(sk.Text);
             Muted = Brush(sk.Muted);
@@ -948,7 +847,6 @@ namespace CountdownWidget
 
             if (isMinimal)
             {
-                // Alpha = 1/255 prevents WS_EX_LAYERED click-through to Windows taskbar while staying visually frameless.
                 Root.Background = Brush(Light ? "#01FFFFFF" : "#01000000");
                 Root.BorderBrush = Brushes.Transparent;
                 Root.BorderThickness = new Thickness(0);
@@ -964,7 +862,7 @@ namespace CountdownWidget
             else
             {
                 CardsHost.Effect = null;
-                string a = Config.glass ? (themed ? "CA" : "BC") : "FF";
+                string a = Config.glass ? (themed ? "CE" : "C0") : "FF";
                 var gb = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 1) };
                 gb.GradientStops.Add(new GradientStop(C_(HexA(a, sk.Bg1)), 0));
                 gb.GradientStops.Add(new GradientStop(C_(HexA(a, sk.Bg2)), 1));
@@ -972,10 +870,10 @@ namespace CountdownWidget
                 Root.Background = gb;
 
                 Color rimTop = Light
-                    ? Color.FromArgb(Config.glass ? (byte)220 : (byte)160, 255, 255, 255)
-                    : Color.FromArgb(Config.glass ? (byte)85 : (byte)64, 255, 255, 255);
-                Color rimBot = Light ? Color.FromArgb(36, 0, 0, 0) : Color.FromArgb(24, 255, 255, 255);
-                if (themed && !Light) rimTop = C_(HexA("58", sk.Detail));
+                    ? Color.FromArgb(Config.glass ? (byte)230 : (byte)170, 255, 255, 255)
+                    : Color.FromArgb(Config.glass ? (byte)92 : (byte)64, 255, 255, 255);
+                Color rimBot = Light ? Color.FromArgb(34, 0, 0, 0) : Color.FromArgb(24, 255, 255, 255);
+                if (themed && !Light) rimTop = C_(HexA("62", sk.Detail));
                 var borderGrad = new LinearGradientBrush(rimTop, rimBot, new Point(0, 0), new Point(0.5, 1));
                 borderGrad.Freeze();
                 Root.BorderBrush = borderGrad;
@@ -984,7 +882,9 @@ namespace CountdownWidget
                 Root.Padding = new Thickness(6, 0, 6, 0);
             }
 
-            if (W.ContextMenu != null && (force || _renderedLight != Light)) SetPalette(W.ContextMenu, Light);
+            if (W.ContextMenu != null && (force || _renderedLight != Light)) SetPalette(W.ContextMenu, Light, false);
+
+            // Only show side emblem decor when single/rotate or themed without clutter
             if (force || _renderedSkinId != ActiveSkinId || _renderedLight != Light)
             {
                 StopStar();
@@ -992,7 +892,7 @@ namespace CountdownWidget
                 DecorSlot.Child = deco;
                 if (deco != null)
                 {
-                    DecorSlot.Margin = new Thickness(6, 0, 6, 0);
+                    DecorSlot.Margin = new Thickness(5, 0, 5, 0);
                     DecorSlot.Visibility = Visibility.Visible;
                 }
                 else
@@ -1004,77 +904,117 @@ namespace CountdownWidget
             _renderedSkinId = ActiveSkinId;
             _renderedLight = Light;
             _renderedGlass = Config.glass;
+            _renderedProg = Config.show_progress_bar;
         }
 
-        static void BuildCards()
+        static void BuildCards(bool animateSlide, int slideDir = 1)
         {
             CardsHost.Children.Clear();
             Slots.Clear();
-            if (Index >= Items.Count) Index = 0;
-            if (Items.Count == 0)
+            if (Index >= ResolvedItems.Count) Index = 0;
+
+            if (ResolvedItems.Count == 0)
             {
                 var empty = Text("添加一个值得期待的日子", 11, Muted);
                 empty.Margin = new Thickness(10, 9, 10, 9);
                 CardsHost.Children.Add(empty);
+                ProgressHairline.Visibility = Visibility.Collapsed;
             }
             else
             {
                 bool themed = ActiveSkinId != "default" && ActiveSkinId != "minimal";
                 var sepBrush = Brush(themed ? HexA("2E", DetailColor()) : Light ? "#1E000000" : "#22FFFFFF");
-                var now = DateTime.Now;
-                int nearestIdx = -1;
-                for (int i = 0; i < Items.Count; i++)
-                    if (Items[i].Date > now) { nearestIdx = i; break; }
-                int start = Config.display_mode == "rotate" ? Index : 0;
-                int count = Config.display_mode == "rotate" ? 1 : Items.Count;
+                string mode = (Config.display_mode ?? "expand").ToLowerInvariant();
+                int count = mode == "single" || mode == "rotate" ? 1
+                    : mode == "dual" ? Math.Min(2, ResolvedItems.Count)
+                    : ResolvedItems.Count;
+                int start = (mode == "single" || mode == "rotate" || mode == "dual") ? Index : 0;
+
+                ResolvedItem primaryForProg = null;
                 for (int n = 0; n < count; n++)
                 {
                     if (n > 0) CardsHost.Children.Add(new Border { Width = 1, Height = 16, Background = sepBrush, VerticalAlignment = VerticalAlignment.Center });
-                    int itemIdx = start + n;
-                    CardsHost.Children.Add(Card(Items[itemIdx], itemIdx == nearestIdx));
+                    int itemIdx = (start + n) % ResolvedItems.Count;
+                    var entry = ResolvedItems[itemIdx];
+                    if (n == 0) primaryForProg = entry;
+                    bool highlight = n == 0 || entry.IsToday;
+                    CardsHost.Children.Add(Card(entry, highlight));
                 }
-                if (Config.display_mode == "rotate" && Items.Count > 1)
+
+                if ((mode == "rotate" || mode == "single") && ResolvedItems.Count > 1)
                 {
-                    var page = Text((Index + 1) + "/" + Items.Count, 9.5, Muted);
+                    var page = Text((Index + 1) + "/" + ResolvedItems.Count, 9.5, Muted);
                     page.FontFamily = WidgetNumFont;
-                    page.Margin = new Thickness(2, 0, 9, 0);
+                    page.Margin = new Thickness(1, 0, 8, 0);
+                    page.ToolTip = "滚轮切换日程";
                     CardsHost.Children.Add(page);
                 }
+
+                // Update bottom ambient progress hairline
+                if (Config.show_progress_bar && ActiveSkinId != "minimal" && primaryForProg != null)
+                {
+                    ProgressHairline.Background = primaryForProg.IsToday ? Brush("#D89E34") : Brush(HexA("9E", DetailColor()));
+                    ProgressHairline.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    ProgressHairline.Visibility = Visibility.Collapsed;
+                }
             }
-            Update(); W.UpdateLayout(); Position();
+
+            Update();
+            W.UpdateLayout();
+
+            // Size bottom hairline to exact percentage of pill width
+            if (ProgressHairline.Visibility == Visibility.Visible && ResolvedItems.Count > 0)
+            {
+                int pIdx = Math.Max(0, Math.Min(Index, ResolvedItems.Count - 1));
+                double avail = Math.Max(16, RootGrid.ActualWidth - 8);
+                ProgressHairline.Width = Math.Max(10, avail * ResolvedItems[pIdx].Progress);
+            }
+
+            Position();
+
+            // Silky slide+fade micro-animation when cycling moments!
+            if (animateSlide && Config.motion && CardsSlide != null)
+            {
+                var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+                CardsSlide.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(slideDir * 8, 0, TimeSpan.FromMilliseconds(210)) { EasingFunction = ease });
+                CardsHost.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0.25, 1.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = ease });
+            }
         }
 
-        static UIElement Card(TimedItem entry, bool isNearest)
+        static UIElement Card(ResolvedItem entry, bool highlight)
         {
-            var item = entry.Item;
-            var target = entry.Date;
-            bool matchFest = ActiveSkinId != "default" && ActiveSkinId != "minimal" && FestivalForName(item.name) == ActiveSkinId;
-            bool highlight = isNearest || matchFest;
-            var col = new StackPanel { Background = Brushes.Transparent, Tag = entry, Margin = new Thickness(9, 3.5, 10, 3.5), MinWidth = Config.show_seconds ? 132 : 50 };
-            col.ToolTip = item.name + "\n" + target.ToString("yyyy-MM-dd HH:mm") + "\n单击切换时分秒 · 拖动调整位置 · 右键设置";
+            var col = new StackPanel { Background = Brushes.Transparent, Tag = entry, Margin = new Thickness(8, 3, 9, 4), MinWidth = Config.show_seconds ? 132 : 52 };
+            string tip = entry.Name + "\n" + entry.TargetDate.ToString("yyyy-MM-dd HH:mm");
+            if (!string.IsNullOrEmpty(entry.LunarDisplay)) tip += "  (" + entry.LunarDisplay + ")";
+            if (!string.IsNullOrEmpty(entry.RepeatLabel)) tip += "  ·  " + entry.RepeatLabel;
+            tip += "\n单击打开期待浮层 · 滚轮切页 · 拖动定位 · 右键菜单";
+            col.ToolTip = tip;
 
             var titleRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-            if (highlight)
-            {
-                titleRow.Children.Add(new Border
-                {
-                    Width = 2.5, Height = 9, CornerRadius = new CornerRadius(1.25),
-                    Background = DetailBrush, Margin = new Thickness(0, 0, 4.5, 0), VerticalAlignment = VerticalAlignment.Center
-                });
-            }
-            var name = Text(string.IsNullOrWhiteSpace(item.name) ? "倒计时" : item.name, 10, highlight ? DetailBrush : Muted);
+            // Semantic micro-icon per event!
+            var icon = BuildEventIcon(entry.ResolvedIcon, 10, entry.IsToday ? Brush("#D89E34") : (highlight ? DetailBrush : Muted), 1.4);
+            icon.Margin = new Thickness(0, 0, 4, 0);
+            titleRow.Children.Add(icon);
+
+            var name = Text(entry.Name, 10, entry.IsToday ? Brush("#D89E34") : (highlight ? DetailBrush : Muted));
             name.FontWeight = highlight ? FontWeights.SemiBold : FontWeights.Normal;
-            name.MaxWidth = 118;
+            name.MaxWidth = 114;
             name.TextTrimming = TextTrimming.CharacterEllipsis;
             titleRow.Children.Add(name);
             col.Children.Add(titleRow);
 
             var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0.5, 0, 0) };
-            var value = Text("", 18, Ink); value.FontFamily = WidgetNumFont; value.FontWeight = FontWeights.Bold;
-            var suffix = Text("", 10, Muted); suffix.Margin = new Thickness(3.5, 3, 0, 0);
+            var value = Text("", 17.5, Ink);
+            value.FontFamily = ResolveWidgetNumberFont();
+            value.FontWeight = FontWeights.Bold;
+            var suffix = Text("", 9.5, Muted);
+            suffix.Margin = new Thickness(3, 3, 0, 0);
             if (Config.show_seconds) suffix.FontFamily = WidgetMonoFont;
             row.Children.Add(value); row.Children.Add(suffix); col.Children.Add(row);
-            Slots.Add(new CountdownSlot { Target = target, Value = value, Suffix = suffix });
+            Slots.Add(new CountdownSlot { Entry = entry, Value = value, Suffix = suffix });
             return col;
         }
 
@@ -1083,12 +1023,13 @@ namespace CountdownWidget
             var now = DateTime.Now;
             foreach (var slot in Slots)
             {
-                var target = slot.Target;
-                string value = DayText(target, now, Config.show_seconds);
-                bool numeric = value != "已到期" && value != "今天";
-                double fontSize = numeric ? 18 : 13.5;
-                Brush fg = target <= now ? Muted : ValueInk;
-                string suffix = !numeric ? "" : Config.show_seconds ? "天  " + (target - now).ToString(@"hh\:mm\:ss") : "天";
+                string suffix;
+                bool numeric;
+                string value = FormatResolvedShortValue(slot.Entry, now, Config.show_seconds, out suffix, out numeric);
+                if (slot.Entry.IsToday && !numeric) value = "✦ 今天";
+                double fontSize = numeric ? 17.5 : 13;
+                Brush fg = slot.Entry.IsToday ? Brush(Light ? "#B57818" : "#F0C975")
+                    : (slot.Entry.IsExpired ? Muted : ValueInk);
                 if (slot.Value.Text != value) slot.Value.Text = value;
                 if (slot.Value.FontSize != fontSize) slot.Value.FontSize = fontSize;
                 if (!ReferenceEquals(slot.Value.Foreground, fg)) slot.Value.Foreground = fg;
@@ -1107,8 +1048,26 @@ namespace CountdownWidget
             RECT r; if (!Taskbar(out r)) return;
             double sx = ScaleX(), sy = ScaleY();
             double width = (r.Right - r.Left) / sx;
-            Offset = Math.Max(0, Math.Min(Offset, Math.Max(0, width - W.ActualWidth)));
-            double left = r.Left / sx + Offset;
+            double barLeft = r.Left / sx;
+
+            double desiredOffset;
+            string anch = (Config.anchor ?? "free").ToLowerInvariant();
+            if (anch == "left")
+            {
+                desiredOffset = 14;
+            }
+            else if (anch == "right")
+            {
+                desiredOffset = Math.Max(12, width - W.ActualWidth - 260);
+            }
+            else
+            {
+                desiredOffset = Offset;
+            }
+
+            desiredOffset = Math.Max(4, Math.Min(desiredOffset, Math.Max(4, width - W.ActualWidth - 4)));
+            if (anch == "free") Offset = desiredOffset;
+            double left = barLeft + desiredOffset;
             double top = r.Top / sy + Math.Max(0, ((r.Bottom - r.Top) / sy - W.ActualHeight) / 2);
             if (Math.Abs(W.Left - left) > 0.1) W.Left = left;
             if (Math.Abs(W.Top - top) > 0.1) W.Top = top;
@@ -1124,7 +1083,7 @@ namespace CountdownWidget
         {
             try
             {
-                if (!Preview && Editor == null && ShareWin == null && File.Exists(PendingExePath) && HasWatchdog())
+                if (!Preview && Editor == null && ShareWin == null && FlyoutWin == null && File.Exists(PendingExePath) && HasWatchdog())
                 {
                     W.Close();
                     return;
@@ -1156,7 +1115,6 @@ namespace CountdownWidget
                 if (LowFreqClock.ElapsedMilliseconds >= 1800)
                 {
                     LowFreqClock.Restart();
-                    SyncStar();
                     _systemLight = ReadSystemLight();
                     if (File.Exists(ConfigPath) && File.GetLastWriteTimeUtc(ConfigPath) != LastWrite)
                     {
@@ -1168,8 +1126,24 @@ namespace CountdownWidget
                     }
                     if (IsLight() != Light) Build();
                     if (Config.skin == "auto" && ResolveSkinId() != ActiveSkinId) Build();
+
+                    // Fullscreen auto-hide etiquette
+                    IntPtr tray = FindWindow("Shell_TrayWnd", null);
+                    bool shouldHide = !Preview && Config.hide_fullscreen && FlyoutWin == null && IsFullscreenAppActive(Hwnd, tray);
+                    if (shouldHide != _fullscreenHidden)
+                    {
+                        _fullscreenHidden = shouldHide;
+                        W.Opacity = shouldHide ? 0 : 1;
+                        W.IsHitTestVisible = !shouldHide;
+                        SyncStar();
+                    }
+                    else
+                    {
+                        SyncStar();
+                    }
+
                     Position();
-                    if (Hwnd != IntPtr.Zero)
+                    if (Hwnd != IntPtr.Zero && !_fullscreenHidden)
                     {
                         if (W.Opacity != 1) W.Opacity = 1;
                         if (!W.IsHitTestVisible) W.IsHitTestVisible = true;
@@ -1177,17 +1151,16 @@ namespace CountdownWidget
                     }
                 }
 
-                if (Config.display_mode == "rotate" && Items.Count > 1 && RotationClock.Elapsed.TotalSeconds >= Config.rotate_seconds)
+                if (Config.display_mode == "rotate" && ResolvedItems.Count > 1 && RotationClock.Elapsed.TotalSeconds >= Config.rotate_seconds)
                 {
-                    Index = (Index + 1) % Items.Count;
+                    Index = (Index + 1) % ResolvedItems.Count;
                     RotationClock.Restart();
-                    BuildCards();
+                    BuildCards(true, 1);
                 }
                 Update();
             }
             catch (Exception ex)
             {
-                // Retry invalid/incomplete external edits only when their timestamp changes.
                 LastWrite = File.GetLastWriteTimeUtc(ConfigPath);
                 Log(ex);
             }
