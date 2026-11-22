@@ -1692,10 +1692,12 @@ namespace CountdownWidget
             Grid.SetColumn(previewPane, 0); body.Children.Add(previewPane);
 
             var previewCanvasGrid = new Grid();
+            previewCanvasGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            previewCanvasGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             previewPane.Child = previewCanvasGrid;
 
-            // Canvas top indicator - assures user of 100% clean full-bleed export
-            var canvasHeader = new DockPanel { VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(4, 2, 4, 0) };
+            // Canvas top indicator - assures user of 100% clean card-only export
+            var canvasHeader = new DockPanel { Margin = new Thickness(2, 0, 2, 10) };
             var badge100 = new Border
             {
                 Background = Brush("#202229"),
@@ -1705,18 +1707,19 @@ namespace CountdownWidget
                 BorderBrush = Brush("#30333C"),
                 BorderThickness = new Thickness(1)
             };
-            badge100.Child = new TextBlock { Text = "✦ 所见即所得纯净导出 · 100% 满幅无多余黑底边框", FontFamily = MonoFont, FontSize = 9.5, Foreground = Brush("#8892B0") };
+            badge100.Child = new TextBlock { Text = "✦ 所见即所得 · 纯卡片导出，无多余外层背景", FontFamily = MonoFont, FontSize = 9.5, Foreground = Brush("#8892B0") };
             canvasHeader.Children.Add(badge100);
+            Grid.SetRow(canvasHeader, 0);
             previewCanvasGrid.Children.Add(canvasHeader);
 
             var previewFrame = new Border
             {
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 24, 0, 16),
                 Effect = new DropShadowEffect { Color = Colors.Black, BlurRadius = 32, ShadowDepth = 10, Direction = 270, Opacity = 0.32 }
             };
-            var viewbox = new Viewbox { Stretch = Stretch.Uniform, Child = previewFrame };
+            var viewbox = new Viewbox { Stretch = Stretch.Uniform, Margin = new Thickness(4, 2, 4, 4), Child = previewFrame };
+            Grid.SetRow(viewbox, 1);
             previewCanvasGrid.Children.Add(viewbox);
 
             // Right De-Dropdowned Control Studio Pane

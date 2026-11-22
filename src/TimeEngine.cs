@@ -562,8 +562,10 @@ namespace CountdownWidget
                 int state;
                 if (SHQueryUserNotificationState(out state) == 0)
                 {
-                    // 2 = QUNS_BUSY, 3 = QUNS_RUNNING_D3D_FULL_SCREEN, 4 = QUNS_PRESENTATION_MODE
-                    if (state == 2 || state == 3 || state == 4) return true;
+                    // 3 = QUNS_RUNNING_D3D_FULL_SCREEN, 4 = QUNS_PRESENTATION_MODE
+                    // Note: Do NOT blindly hide on QUNS_BUSY (2), which can fire for secondary-monitor
+                    // fullscreen or Focus/DND states; verify foreground rect on the taskbar's monitor below.
+                    if (state == 3 || state == 4) return true;
                 }
                 IntPtr fg = GetForegroundWindow();
                 if (fg == IntPtr.Zero || fg == selfHwnd || fg == trayHwnd) return false;
@@ -576,6 +578,11 @@ namespace CountdownWidget
                 if (!GetWindowRect(fg, out fr)) return false;
                 IntPtr mon = MonitorFromWindow(fg, 2 /* MONITOR_DEFAULTTONEAREST */);
                 if (mon == IntPtr.Zero) return false;
+                if (trayHwnd != IntPtr.Zero)
+                {
+                    IntPtr trayMon = MonitorFromWindow(trayHwnd, 2 /* MONITOR_DEFAULTTONEAREST */);
+                    if (trayMon != IntPtr.Zero && mon != trayMon) return false;
+                }
                 var mi = new MONITORINFO { cbSize = Marshal.SizeOf(typeof(MONITORINFO)) };
                 if (!GetMonitorInfo(mon, ref mi)) return false;
                 return fr.Left <= mi.rcMonitor.Left && fr.Top <= mi.rcMonitor.Top
