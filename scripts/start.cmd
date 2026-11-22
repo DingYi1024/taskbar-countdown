@@ -1,2 +1,2 @@
 @echo off
-start "" "%~dp0CountdownWatchdog.exe"
+start "" "%~dp0Countdown.exe" --watchdog

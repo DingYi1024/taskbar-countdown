@@ -51,6 +51,8 @@ namespace CountdownWidget
         public string click_action { get; set; }   // "flyout" | "seconds"
         public bool show_progress_bar { get; set; }
         public string font_style { get; set; }     // "modern" | "editorial" | "mono"
+        public bool show_tray_icon { get; set; }
+        public string sort_mode { get; set; }      // "smart" | "manual"
         public string pinned_name { get; set; }
         public List<CfgItem> items { get; set; }
 
@@ -67,6 +69,8 @@ namespace CountdownWidget
             click_action = "flyout";
             show_progress_bar = true;
             font_style = "modern";
+            show_tray_icon = true;
+            sort_mode = "smart";
             items = new List<CfgItem>();
         }
     }
@@ -470,7 +474,39 @@ namespace CountdownWidget
             "愿此去经年，所盼皆所得，所遇皆温柔。",
             "冬有冬的来意，雪有雪的秘密，重逢自有归期。",
             "灯火可亲，岁月可期，敬每一个奔赴的明天。",
-            "世界喧嚣，幸好这里替你安静数着归期。"
+            "世界喧嚣，幸好这里替你安静数着归期。",
+            "把好日子提前挂在眼前，平凡的今天便有了温度。",
+            "风会替你翻过旧页，把更好的章节递到手里。",
+            "穿过绵长的日常，总有一束光在尽头等你。",
+            "认真过好眼下的每一刻，就是对未来最好的赴约。",
+            "日出有盼，日落有念，平平安安，所愿皆安。",
+            "有些日子还没到来，光是想到它就已经很甜。",
+            "我们在时间里赶路，也把最珍贵的日期留作路标。",
+            "且听风吟，静待花信，一切美好都在路上。",
+            "人间朝暮，叶落惊秋，唯有心底的期待常青。",
+            "愿下一次出发时，行李箱装满轻盈与晴朗。",
+            "把想见的人写进日程，距离便开始一天天变短。",
+            "时间是最温柔的证人，记录每一次坚持与抵达。",
+            "别慌，月亮也正在大海某处迷茫，但潮汐总会准时。",
+            "所有的伏笔，都会在某个明朗的早晨如期兑现。",
+            "以欢喜之心，慢度日常；以从容之态，静候佳期。",
+            "日子一天天往前翻，我们在期待里慢慢变好。",
+            "那些认真准备的时光，终将在终点闪闪发光。",
+            "春风有信，花开有期，所有久别重逢都值得奔赴。",
+            "愿你在忙碌的缝隙里，抬头就能看见盼望的光。",
+            "把重要的人和事留在视线里，便不怕岁月匆忙。",
+            "每一段倒数，都是给平淡生活写下的一封情书。",
+            "走过的路都作数，即将抵达的风景更动人。",
+            "山河远阔，人间烟火，愿你如约奔向心安处。",
+            "时光不动声色，却把最温柔的礼物留在了前方。",
+            "今天也在稳步靠近那个令你嘴角上扬的日子。",
+            "长风破浪会有时，直挂云帆，静候佳音。",
+            "把心事折成纸船，顺着日历漂向闪亮的彼岸。",
+            "星河滚烫，人间理想，每一步都离梦想更近一点。",
+            "不必焦虑终点多远，至少今天比昨天近了一整天。",
+            "愿每一个被圈出的日子，最终都不负满怀热望。",
+            "在日复一日的微光里，收藏属于自己的节日。",
+            "岁月悠长，值得期待的事情，一件件都会发生。"
         };
 
         static int _quoteIdx = 0;
@@ -490,10 +526,14 @@ namespace CountdownWidget
         const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
         const string RunValueName = "TaskbarCountdown";
 
-        static string LegacyStartupShortcutPath()
+        static string[] LegacyStartupShortcutPaths()
         {
             string startupDir = Environment.GetFolderPath(Environment.SpecialFolder.Startup);
-            return Path.Combine(startupDir, "TaskbarCountdown.lnk");
+            return new[] {
+                Path.Combine(startupDir, "TaskbarCountdown.lnk"),
+                Path.Combine(startupDir, "Taskbar Countdown.lnk"),
+                Path.Combine(startupDir, "2027 Countdown.lnk")
+            };
         }
 
         public static bool IsStartupEnabled()
@@ -504,7 +544,10 @@ namespace CountdownWidget
                 {
                     if (key != null && key.GetValue(RunValueName) != null) return true;
                 }
-                if (File.Exists(LegacyStartupShortcutPath())) return true;
+                foreach (var p in LegacyStartupShortcutPaths())
+                {
+                    if (File.Exists(p)) return true;
+                }
             }
             catch { }
             return false;
@@ -520,9 +563,9 @@ namespace CountdownWidget
                     {
                         if (enable)
                         {
-                            string watchdog = Path.Combine(Dir, "CountdownWatchdog.exe");
-                            string target = File.Exists(watchdog) ? watchdog : Path.Combine(Dir, "Countdown.exe");
-                            key.SetValue(RunValueName, "\"" + target + "\"");
+                            // Unified single-EXE self-hosted watchdog mode
+                            string selfExe = Path.Combine(Dir, "Countdown.exe");
+                            key.SetValue(RunValueName, "\"" + selfExe + "\" --watchdog");
                         }
                         else
                         {
@@ -530,8 +573,10 @@ namespace CountdownWidget
                         }
                     }
                 }
-                string legacy = LegacyStartupShortcutPath();
-                if (File.Exists(legacy)) { try { File.Delete(legacy); } catch { } }
+                foreach (var legacy in LegacyStartupShortcutPaths())
+                {
+                    if (File.Exists(legacy)) { try { File.Delete(legacy); } catch { } }
+                }
                 return true;
             }
             catch

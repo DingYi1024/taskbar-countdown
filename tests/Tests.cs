@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Web.Script.Serialization;
 using CountdownWidget;
 
@@ -93,6 +94,27 @@ class Tests {
         Check(Program.DWMWA_USE_IMMERSIVE_DARK_MODE == 20, "dwm immersive dark mode attr");
         Check(Program.DWMWA_WINDOW_CORNER_PREFERENCE == 33, "dwm window corner attr");
         Check(Program.DWMWA_SYSTEMBACKDROP_TYPE == 38, "dwm system backdrop attr");
+
+        // Verify 50+ unique literary quotes, tray icon default, and manual vs smart sort
+        Check(Program.LiteraryQuotes.Length >= 50, "50+ literary quotes library");
+        Check(Program.LiteraryQuotes.Distinct().Count() == Program.LiteraryQuotes.Length, "all literary quotes unique");
+        Check(def.show_tray_icon && def.sort_mode == "smart", "tray icon and sort_mode defaults");
+        Check(legacy.show_tray_icon && legacy.sort_mode == "smart", "legacy config preserves tray & sort defaults");
+
+        var testCfg = new Cfg {
+            sort_mode = "manual",
+            items = new List<CfgItem> {
+                new CfgItem { name = "远期日程", date = "2027-10-01 00:00:00", enabled = true },
+                new CfgItem { name = "近期日程", date = "2026-12-01 00:00:00", enabled = true }
+            }
+        };
+        var cfgField = typeof(Program).GetField("Config", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+        cfgField.SetValue(null, testCfg);
+        var manualOrder = Program.GetResolvedItems(now);
+        Check(manualOrder.Count == 2 && manualOrder[0].Name == "远期日程", "manual sort preserves drag order");
+        testCfg.sort_mode = "smart";
+        var smartOrder = Program.GetResolvedItems(now);
+        Check(smartOrder.Count == 2 && smartOrder[0].Name == "近期日程", "smart sort orders by soonest");
 
         Console.WriteLine(count + " checks passed.");
     }

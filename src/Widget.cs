@@ -169,6 +169,129 @@ namespace CountdownWidget
 
         [DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
 
+        const int WM_TRAYICON = 0x8009;
+        const int WM_LBUTTONUP = 0x0202;
+        const int WM_LBUTTONDBLCLK = 0x0203;
+        const int WM_RBUTTONUP = 0x0205;
+        const uint NIM_ADD = 0x00000000;
+        const uint NIM_MODIFY = 0x00000001;
+        const uint NIM_DELETE = 0x00000002;
+        const uint NIF_MESSAGE = 0x00000001;
+        const uint NIF_ICON = 0x00000002;
+        const uint NIF_TIP = 0x00000004;
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        struct NOTIFYICONDATA
+        {
+            public int cbSize;
+            public IntPtr hWnd;
+            public uint uID;
+            public uint uFlags;
+            public uint uCallbackMessage;
+            public IntPtr hIcon;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+            public string szTip;
+            public uint dwState;
+            public uint dwStateMask;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+            public string szInfo;
+            public uint uVersion;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+            public string szInfoTitle;
+            public uint dwInfoFlags;
+            public Guid guidItem;
+            public IntPtr hBalloonIcon;
+        }
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)] static extern bool Shell_NotifyIcon(uint dwMessage, ref NOTIFYICONDATA lpData);
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)] static extern IntPtr ExtractAssociatedIcon(IntPtr hInst, System.Text.StringBuilder lpIconPath, ref ushort lpiIcon);
+        [DllImport("user32.dll")] static extern bool DestroyIcon(IntPtr hIcon);
+        [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        static bool _trayAdded;
+        static IntPtr _trayHIcon = IntPtr.Zero;
+
+        static IntPtr GetTrayIconHandle()
+        {
+            if (_trayHIcon != IntPtr.Zero) return _trayHIcon;
+            try
+            {
+                string exePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath))
+                {
+                    var sb = new System.Text.StringBuilder(exePath, 260);
+                    ushort idx = 0;
+                    _trayHIcon = ExtractAssociatedIcon(IntPtr.Zero, sb, ref idx);
+                }
+            }
+            catch { }
+            return _trayHIcon;
+        }
+
+        static void SyncTrayIcon(bool forceReadd = false)
+        {
+            if (Preview || Hwnd == IntPtr.Zero) return;
+            bool want = Config != null && Config.show_tray_icon;
+            if (want)
+            {
+                if (_trayAdded && !forceReadd) return;
+                var nid = new NOTIFYICONDATA
+                {
+                    cbSize = Marshal.SizeOf(typeof(NOTIFYICONDATA)),
+                    hWnd = Hwnd,
+                    uID = 101,
+                    uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP,
+                    uCallbackMessage = WM_TRAYICON,
+                    hIcon = GetTrayIconHandle(),
+                    szTip = "拾光倒计时 · 左键浮层 / 双击工作台 / 右键菜单"
+                };
+                if (Shell_NotifyIcon(NIM_ADD, ref nid) || Shell_NotifyIcon(NIM_MODIFY, ref nid))
+                    _trayAdded = true;
+            }
+            else
+            {
+                RemoveTrayIcon(false);
+            }
+        }
+
+        static void RemoveTrayIcon(bool destroyIcon)
+        {
+            if (_trayAdded && Hwnd != IntPtr.Zero)
+            {
+                try
+                {
+                    var nid = new NOTIFYICONDATA { cbSize = Marshal.SizeOf(typeof(NOTIFYICONDATA)), hWnd = Hwnd, uID = 101 };
+                    Shell_NotifyIcon(NIM_DELETE, ref nid);
+                }
+                catch { }
+                _trayAdded = false;
+            }
+            if (destroyIcon && _trayHIcon != IntPtr.Zero)
+            {
+                try { DestroyIcon(_trayHIcon); } catch { }
+                _trayHIcon = IntPtr.Zero;
+            }
+        }
+
+        static void ShowContextMenuAtCursor()
+        {
+            var menu = W != null ? W.ContextMenu : null;
+            if (menu == null) return;
+            POINT p;
+            if (!GetCursorPos(out p)) return;
+            double sx = ScaleX(), sy = ScaleY();
+            double xRel = p.X / sx - W.Left - 12;
+            double yRel = p.Y / sy - W.Top;
+            menu.PlacementTarget = W;
+            menu.Placement = PlacementMode.Custom;
+            menu.CustomPopupPlacementCallback = (popup, target, offset) => new[] {
+                new CustomPopupPlacement(new Point(xRel, yRel - popup.Height - 4), PopupPrimaryAxis.Horizontal),
+                new CustomPopupPlacement(new Point(xRel, -popup.Height + 6), PopupPrimaryAxis.Horizontal),
+                new CustomPopupPlacement(new Point(xRel, W.ActualHeight - 4), PopupPrimaryAxis.Horizontal)
+            };
+            menu.IsOpen = true;
+        }
+
         static IntPtr SetWindowLongPtr(IntPtr hwnd, int index, IntPtr value)
         {
             return IntPtr.Size == 8 ? SetWindowLongPtr64(hwnd, index, value) : new IntPtr(SetWindowLong32(hwnd, index, value.ToInt32()));
@@ -228,6 +351,30 @@ namespace CountdownWidget
                 }
                 catch { }
             }
+            else if (msg == WM_TRAYICON && !Preview)
+            {
+                int ev = lParam.ToInt32() & 0xFFFF;
+                if (ev == WM_LBUTTONUP)
+                {
+                    if (W != null) W.Dispatcher.BeginInvoke(new Action(() => ToggleFlyout(null)));
+                }
+                else if (ev == WM_LBUTTONDBLCLK)
+                {
+                    if (W != null) W.Dispatcher.BeginInvoke(new Action(() => { CloseFlyout(); OpenSettings(0); }));
+                }
+                else if (ev == WM_RBUTTONUP)
+                {
+                    if (W != null) W.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        CloseFlyout();
+                        _clickedEntry = null;
+                        SetForegroundWindow(Hwnd);
+                        ShowContextMenuAtCursor();
+                    }));
+                }
+                handled = true;
+                return IntPtr.Zero;
+            }
             else if (msg == MsgWakeStudio && !Preview)
             {
                 try
@@ -251,6 +398,7 @@ namespace CountdownWidget
                     }
                     Position();
                     SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+                    SyncTrayIcon(true);
                 }
                 catch { }
             }
@@ -478,7 +626,7 @@ namespace CountdownWidget
             return new TextBlock { Text = value, FontSize = size, Foreground = color, VerticalAlignment = VerticalAlignment.Center };
         }
 
-        static List<ResolvedItem> GetResolvedItems(DateTime now)
+        public static List<ResolvedItem> GetResolvedItems(DateTime now)
         {
             var list = new List<ResolvedItem>();
             if (Config == null || Config.items == null) return list;
@@ -488,7 +636,15 @@ namespace CountdownWidget
                 var res = ResolveItem(it, now);
                 if (res != null) list.Add(res);
             }
-            // Ordering: Pinned first -> Today arrivals -> Upcoming by soonest -> Countups -> Expired
+            if (string.Equals(Config.sort_mode, "manual", StringComparison.OrdinalIgnoreCase))
+            {
+                // Preserve user's drag-and-drop manual order (with optional pinned item first)
+                list = list
+                    .OrderByDescending(x => !string.IsNullOrEmpty(Config.pinned_name) && string.Equals(x.Name, Config.pinned_name, StringComparison.Ordinal))
+                    .ToList();
+                return list;
+            }
+            // Smart ordering: Pinned first -> Today arrivals -> Upcoming by soonest -> Countups -> Expired
             list = list
                 .OrderByDescending(x => !string.IsNullOrEmpty(Config.pinned_name) && string.Equals(x.Name, Config.pinned_name, StringComparison.Ordinal))
                 .ThenByDescending(x => x.IsToday)
@@ -515,13 +671,121 @@ namespace CountdownWidget
             catch (Exception ex) { Log(ex); }
         }
 
+        const string WatchdogMutexName = "Local\\DshCountdownWatchdog2027";
+        const string WatchdogStopEventName = "Local\\DshCountdownWatchdogStop2027";
+        const string WidgetMutexName = "Local\\DshCountdownWpf2027";
+
+        static bool IsWidgetProcessRunning()
+        {
+            using (var widget = new Mutex(false, WidgetMutexName))
+            {
+                bool acquired;
+                try { acquired = widget.WaitOne(0); }
+                catch (AbandonedMutexException) { acquired = true; }
+                if (acquired) widget.ReleaseMutex();
+                return !acquired;
+            }
+        }
+
+        static void SignalWatchdogStop()
+        {
+            try
+            {
+                using (var ev = new EventWaitHandle(false, EventResetMode.ManualReset, WatchdogStopEventName))
+                    ev.Set();
+            }
+            catch { }
+        }
+
+        static void RunSelfWatchdog()
+        {
+            string exe = Path.Combine(Dir, "Countdown.exe");
+            string pending = exe + ".pending";
+            string oldExe = exe + ".old";
+            bool handoffToNewBinary = false;
+
+            bool created;
+            using (var guard = new Mutex(true, WatchdogMutexName, out created))
+            {
+                if (!created) return;
+
+                using (var stopEv = new EventWaitHandle(false, EventResetMode.ManualReset, WatchdogStopEventName))
+                {
+                    stopEv.Reset();
+
+                    // Remove any previous hot-swapped binary once unlocked
+                    for (int i = 0; i < 8 && File.Exists(oldExe); i++)
+                    {
+                        try { File.Delete(oldExe); break; }
+                        catch { Thread.Sleep(200); }
+                    }
+
+                    while (File.Exists(exe) || File.Exists(pending))
+                    {
+                        if (stopEv.WaitOne(0)) return;
+                        try
+                        {
+                            if (!IsWidgetProcessRunning())
+                            {
+                                if (stopEv.WaitOne(0)) return;
+                                if (File.Exists(pending))
+                                {
+                                    bool swapped = false;
+                                    for (int i = 0; i < 10; i++)
+                                    {
+                                        try
+                                        {
+                                            if (File.Exists(oldExe)) File.Delete(oldExe);
+                                            if (File.Exists(exe)) File.Move(exe, oldExe);
+                                            File.Move(pending, exe);
+                                            swapped = true;
+                                            break;
+                                        }
+                                        catch (IOException) { Thread.Sleep(150); }
+                                        catch (UnauthorizedAccessException) { Thread.Sleep(150); }
+                                    }
+                                    if (swapped)
+                                    {
+                                        handoffToNewBinary = true;
+                                        break;
+                                    }
+                                }
+                                if (File.Exists(exe) && !stopEv.WaitOne(0))
+                                {
+                                    using (var p = Process.Start(new ProcessStartInfo(exe) { WorkingDirectory = Dir, UseShellExecute = false })) { }
+                                }
+                            }
+                        }
+                        catch (Exception ex) { Log(ex); }
+
+                        if (stopEv.WaitOne(1200)) return;
+                    }
+                }
+            }
+
+            // Spawn the newly swapped single-EXE watchdog AFTER releasing the mutex handle
+            if (handoffToNewBinary && File.Exists(exe))
+            {
+                try
+                {
+                    using (var p = Process.Start(new ProcessStartInfo(exe, "--watchdog") { WorkingDirectory = Dir, UseShellExecute = false })) { }
+                }
+                catch (Exception ex) { Log(ex); }
+            }
+        }
+
         [STAThread]
         public static void Main(string[] args)
         {
+            if (args.Any(a => string.Equals(a, "--watchdog", StringComparison.OrdinalIgnoreCase)))
+            {
+                RunSelfWatchdog();
+                return;
+            }
             bool settings = args.Any(a => a == "--settings");
             Preview = args.Any(a => a == "--preview");
             bool first;
-            using (var mutex = new Mutex(true, settings ? "Local\\DshCountdownSettings2027" : Preview ? "Local\\DshCountdownPreview2027" : "Local\\DshCountdownWpf2027", out first))
+            using (var mutex = new Mutex(true, settings ? "Local\\DshCountdownSettings2027" : Preview ? "Local\\DshCountdownPreview2027" : WidgetMutexName, out first))
             {
                 if (!first)
                 {
@@ -623,6 +887,7 @@ namespace CountdownWidget
                     DwmSetWindowAttribute(Hwnd, DWMWA_TRANSITIONS_FORCEDISABLED, ref trueVal, sizeof(int));
                     DwmSetWindowAttribute(Hwnd, DWMWA_DISALLOW_PEEK, ref trueVal, sizeof(int));
                     DwmSetWindowAttribute(Hwnd, DWMWA_EXCLUDED_FROM_PEEK, ref trueVal, sizeof(int));
+                    SyncTrayIcon();
                 }
                 var source = HwndSource.FromHwnd(Hwnd);
                 if (source != null) source.AddHook(WndProc);
@@ -694,19 +959,7 @@ namespace CountdownWidget
                 e.Handled = true;
                 CloseFlyout();
                 _clickedEntry = FindHitEntry(e.OriginalSource as DependencyObject);
-                var menu = W.ContextMenu;
-                if (menu != null)
-                {
-                    POINT p; GetCursorPos(out p);
-                    double xRel = p.X / ScaleX() - W.Left - 12;
-                    menu.PlacementTarget = W;
-                    menu.Placement = PlacementMode.Custom;
-                    menu.CustomPopupPlacementCallback = (popup, target, offset) => new[] {
-                        new CustomPopupPlacement(new Point(xRel, -popup.Height + 6), PopupPrimaryAxis.Horizontal),
-                        new CustomPopupPlacement(new Point(xRel, W.ActualHeight - 4), PopupPrimaryAxis.Horizontal)
-                    };
-                    menu.IsOpen = true;
-                }
+                ShowContextMenuAtCursor();
             };
 
             Microsoft.Win32.SystemEvents.SessionSwitch += SessionChanged;
@@ -730,6 +983,7 @@ namespace CountdownWidget
             W.Closed += (s, e) =>
             {
                 CloseFlyout();
+                RemoveTrayIcon(true);
                 if (_foregroundHook != IntPtr.Zero)
                 {
                     UnhookWinEvent(_foregroundHook);
@@ -774,11 +1028,15 @@ namespace CountdownWidget
             menu.Items.Add(new Separator());
             AddMenu(menu, "退出倒计时", "M4.2,3.8 C2.9,4.7 2.1,6.2 2.1,7.9 C2.1,10.6 4.3,12.8 7,12.8 C9.7,12.8 11.9,10.6 11.9,7.9 C11.9,6.2 11.1,4.7 9.8,3.8 M7,1.8 L7,6.8", "Danger", () =>
             {
-                if (!Preview) foreach (var p in Process.GetProcessesByName("CountdownWatchdog"))
+                if (!Preview)
                 {
-                    try { if (string.Equals(Path.GetDirectoryName(p.MainModule.FileName), Dir.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)) p.Kill(); }
-                    catch (Exception ex) { Log(ex); }
-                    finally { p.Dispose(); }
+                    SignalWatchdogStop();
+                    foreach (var p in Process.GetProcessesByName("CountdownWatchdog"))
+                    {
+                        try { if (string.Equals(Path.GetDirectoryName(p.MainModule.FileName), Dir.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)) p.Kill(); }
+                        catch (Exception ex) { Log(ex); }
+                        finally { p.Dispose(); }
+                    }
                 }
                 W.Close();
             });
@@ -1121,6 +1379,7 @@ namespace CountdownWidget
                         Config = ReadConfig();
                         LastWrite = File.GetLastWriteTimeUtc(ConfigPath);
                         Build();
+                        SyncTrayIcon();
                         RotationClock.Restart();
                         SyncTimerInterval();
                     }

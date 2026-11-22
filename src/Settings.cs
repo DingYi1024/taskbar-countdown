@@ -149,11 +149,31 @@ namespace CountdownWidget
             var navButtons = new List<Border>();
             Action refreshCurrentTab = null;
 
+            // Bounded Ctrl+Z undo stack for moment list operations
+            var undoStack = new List<string>();
+            Action pushUndo = () =>
+            {
+                try
+                {
+                    string snap = Json.Serialize(new
+                    {
+                        items = Config.items ?? new List<CfgItem>(),
+                        pinned_name = Config.pinned_name,
+                        sort_mode = Config.sort_mode ?? "smart"
+                    });
+                    if (undoStack.Count > 0 && undoStack[undoStack.Count - 1] == snap) return;
+                    undoStack.Add(snap);
+                    if (undoStack.Count > 30) undoStack.RemoveAt(0);
+                }
+                catch { }
+            };
+
             Action<bool> liveCommit = fullRebuild =>
             {
                 try
                 {
                     SaveConfig(Config, false, fullRebuild);
+                    SyncTrayIcon();
                     bool nextLight = IsLight();
                     updateWinTheme(nextLight);
                     syncTxt.Text = "✓ 已同步至任务栏";
@@ -164,6 +184,29 @@ namespace CountdownWidget
                 {
                     MessageBox.Show(editor, "保存失败：" + ex.Message, "拾光工作台");
                 }
+            };
+
+            Action performUndo = () =>
+            {
+                if (undoStack.Count == 0) return;
+                try
+                {
+                    string snap = undoStack[undoStack.Count - 1];
+                    undoStack.RemoveAt(undoStack.Count - 1);
+                    var restored = Json.Deserialize<Cfg>(snap);
+                    if (restored != null)
+                    {
+                        Config.items = restored.items ?? new List<CfgItem>();
+                        Config.pinned_name = restored.pinned_name;
+                        Config.sort_mode = string.IsNullOrEmpty(restored.sort_mode) ? "smart" : restored.sort_mode;
+                        liveCommit(false);
+                        syncTxt.Text = "↶ 已撤销上一步";
+                        syncTimer.Stop();
+                        syncTimer.Start();
+                        if (refreshCurrentTab != null && activeTab == 0) refreshCurrentTab();
+                    }
+                }
+                catch { }
             };
 
             string[] navTitles = { "时光清单", "外观画廊", "社交工坊", "系统偏好" };
@@ -277,6 +320,20 @@ namespace CountdownWidget
                 DockPanel.SetDock(actRow, Dock.Right);
                 head.Children.Add(actRow);
 
+                var undoBtn = ActionButton("↶ 撤销", () => performUndo());
+                undoBtn.Margin = new Thickness(0, 0, 8, 0);
+                undoBtn.Padding = new Thickness(10, 6, 10, 6);
+                undoBtn.FontSize = 11.5;
+                undoBtn.ToolTip = "撤销上一步修改 (Ctrl+Z)";
+                actRow.Children.Add(undoBtn);
+
+                var sortBtn = ActionButton("", () => { });
+                sortBtn.Margin = new Thickness(0, 0, 8, 0);
+                sortBtn.Padding = new Thickness(10, 6, 10, 6);
+                sortBtn.FontSize = 11.5;
+                sortBtn.ToolTip = "点击切换「智能按临近排序」或「按下方拖拽自定义顺序」";
+                actRow.Children.Add(sortBtn);
+
                 var presetBtn = ActionButton("智能节日与场景预设 ▾", () => { });
                 presetBtn.Margin = new Thickness(0, 0, 8, 0);
                 actRow.Children.Add(presetBtn);
@@ -299,12 +356,23 @@ namespace CountdownWidget
                 dock.Children.Add(scroller);
 
                 Action renderCards = null;
+                sortBtn.Click += (s, e) =>
+                {
+                    pushUndo();
+                    Config.sort_mode = string.Equals(Config.sort_mode, "manual", StringComparison.OrdinalIgnoreCase) ? "smart" : "manual";
+                    liveCommit(false);
+                    if (renderCards != null) renderCards();
+                };
+
                 renderCards = () =>
                 {
                     listStack.Children.Clear();
                     var now = DateTime.Now;
                     int enabledCount = Config.items.Count(x => x != null && x.enabled && !x.archived);
-                    hSub.Text = "共 " + Config.items.Count + " 个日子 · " + enabledCount + " 个在任务栏展示 · 支持公历、中国农历、正数纪念与周期循环";
+                    bool isManual = string.Equals(Config.sort_mode, "manual", StringComparison.OrdinalIgnoreCase);
+                    undoBtn.Visibility = undoStack.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+                    sortBtn.Content = isManual ? "排序：自定义顺序" : "排序：智能临近";
+                    hSub.Text = "共 " + Config.items.Count + " 个日子 · " + enabledCount + " 个在任务栏展示 · 左侧 ⋮⋮ 可拖拽排序 · Ctrl+Z 撤销";
 
                     if (Config.items.Count == 0)
                     {
@@ -331,18 +399,51 @@ namespace CountdownWidget
                         var card = new Border
                         {
                             CornerRadius = new CornerRadius(11),
-                            Padding = new Thickness(14, 11, 14, 11),
+                            Padding = new Thickness(10, 11, 14, 11),
                             Margin = new Thickness(0, 0, 0, 9),
-                            BorderThickness = new Thickness(1)
+                            BorderThickness = new Thickness(1),
+                            AllowDrop = true
                         };
                         card.SetResourceReference(Border.BackgroundProperty, "Surface");
                         card.SetResourceReference(Border.BorderBrushProperty, "Line");
 
+                        card.DragOver += (s, e) =>
+                        {
+                            if (e.Data.GetDataPresent("TaskbarCountdownItemIdx"))
+                            {
+                                e.Effects = DragDropEffects.Move;
+                                card.SetResourceReference(Border.BorderBrushProperty, "Accent");
+                                e.Handled = true;
+                            }
+                            else e.Effects = DragDropEffects.None;
+                        };
+                        card.DragLeave += (s, e) =>
+                        {
+                            card.SetResourceReference(Border.BorderBrushProperty, "Line");
+                        };
+                        card.Drop += (s, e) =>
+                        {
+                            card.SetResourceReference(Border.BorderBrushProperty, "Line");
+                            if (!e.Data.GetDataPresent("TaskbarCountdownItemIdx")) return;
+                            int fromIdx = (int)e.Data.GetData("TaskbarCountdownItemIdx");
+                            int toIdx = capturedIdx;
+                            if (fromIdx == toIdx || fromIdx < 0 || fromIdx >= Config.items.Count || toIdx < 0 || toIdx >= Config.items.Count) return;
+                            pushUndo();
+                            var moving = Config.items[fromIdx];
+                            Config.items.RemoveAt(fromIdx);
+                            Config.items.Insert(toIdx, moving);
+                            Config.sort_mode = "manual";
+                            liveCommit(false);
+                            renderCards();
+                            e.Handled = true;
+                        };
+
                         var cardStack = new StackPanel();
                         card.Child = cardStack;
 
-                        // Row 1: Toggle | Icon | Name TextBox | Date Picker Button | Days Badge | Actions
+                        // Row 1: Drag Grip | Toggle | Icon | Name TextBox | Date Picker Button | Days Badge | Actions
                         var topRow = new Grid();
+                        topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(22) });   // Drag grip
                         topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(46) });   // Toggle
                         topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(36) });   // Icon
                         topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Name
@@ -351,10 +452,31 @@ namespace CountdownWidget
                         topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(116) });  // Share + Delete
                         cardStack.Children.Add(topRow);
 
+                        // Tactile 6-dot drag grip handle
+                        var grip = new Border { Background = Brushes.Transparent, Cursor = Cursors.SizeAll, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(2, 6, 4, 6), ToolTip = "按住拖动调整卡片顺序" };
+                        var gripTxt = Label("⋮⋮", 12, "Muted");
+                        gripTxt.Opacity = 0.65;
+                        grip.Child = gripTxt;
+                        Point dragStart = new Point();
+                        bool dragArmed = false;
+                        grip.PreviewMouseLeftButtonDown += (s, e) => { dragStart = e.GetPosition(null); dragArmed = true; };
+                        grip.PreviewMouseMove += (s, e) =>
+                        {
+                            if (!dragArmed || e.LeftButton != MouseButtonState.Pressed) return;
+                            Vector diff = dragStart - e.GetPosition(null);
+                            if (Math.Abs(diff.X) > 3 || Math.Abs(diff.Y) > 3)
+                            {
+                                dragArmed = false;
+                                DragDrop.DoDragDrop(card, new DataObject("TaskbarCountdownItemIdx", capturedIdx), DragDropEffects.Move);
+                            }
+                        };
+                        grip.PreviewMouseLeftButtonUp += (s, e) => { dragArmed = false; };
+                        Grid.SetColumn(grip, 0); topRow.Children.Add(grip);
+
                         var enChk = new CheckBox { IsChecked = item.enabled, ToolTip = "在任务栏展示" };
-                        enChk.Checked += (s, e) => { item.enabled = true; liveCommit(false); renderCards(); };
-                        enChk.Unchecked += (s, e) => { item.enabled = false; liveCommit(false); renderCards(); };
-                        Grid.SetColumn(enChk, 0); topRow.Children.Add(enChk);
+                        enChk.Checked += (s, e) => { pushUndo(); item.enabled = true; liveCommit(false); renderCards(); };
+                        enChk.Unchecked += (s, e) => { pushUndo(); item.enabled = false; liveCommit(false); renderCards(); };
+                        Grid.SetColumn(enChk, 1); topRow.Children.Add(enChk);
 
                         // Clickable category icon badge (cycles icon!)
                         string curIcon = resolved != null ? resolved.ResolvedIcon : "star";
@@ -369,12 +491,13 @@ namespace CountdownWidget
                         iconBtn.Child = BuildEventIcon(curIcon, 14, (Brush)editor.Resources["Accent"], 1.45);
                         iconBtn.MouseLeftButtonUp += (s, e) =>
                         {
+                            pushUndo();
                             int curIdx = Array.IndexOf(EventIconIds, item.icon ?? "auto");
                             item.icon = EventIconIds[(curIdx + 1) % EventIconIds.Length];
                             liveCommit(false);
                             renderCards();
                         };
-                        Grid.SetColumn(iconBtn, 1); topRow.Children.Add(iconBtn);
+                        Grid.SetColumn(iconBtn, 2); topRow.Children.Add(iconBtn);
 
                         var nameBox = new TextBox { Text = item.name, MaxLength = 40, Margin = new Thickness(0, 0, 10, 0), FontSize = 13, FontWeight = FontWeights.Medium };
                         nameBox.LostFocus += (s, e) =>
@@ -382,13 +505,14 @@ namespace CountdownWidget
                             string trimmed = (nameBox.Text ?? "").Trim();
                             if (!string.IsNullOrEmpty(trimmed) && trimmed != item.name)
                             {
+                                pushUndo();
                                 item.name = trimmed;
                                 liveCommit(false);
                                 renderCards();
                             }
                         };
                         nameBox.KeyDown += (s, e) => { if (e.Key == Key.Enter) Keyboard.ClearFocus(); };
-                        Grid.SetColumn(nameBox, 2); topRow.Children.Add(nameBox);
+                        Grid.SetColumn(nameBox, 3); topRow.Children.Add(nameBox);
 
                         // Calendar Date Picker Button (NO manual typing!)
                         string dateBtnLabel = (resolved != null && resolved.IsLunar)
@@ -404,6 +528,7 @@ namespace CountdownWidget
                         {
                             OpenCalendarPicker(dateBtn, IsLight(), item, (dateStr, isLun, lm, ld, lp) =>
                             {
+                                pushUndo();
                                 item.date = dateStr;
                                 item.calendar = isLun ? "lunar" : "solar";
                                 item.lunar_month = lm;
@@ -414,7 +539,7 @@ namespace CountdownWidget
                                 renderCards();
                             });
                         };
-                        Grid.SetColumn(dateBtn, 3); topRow.Children.Add(dateBtn);
+                        Grid.SetColumn(dateBtn, 4); topRow.Children.Add(dateBtn);
 
                         // Remaining / Elapsed Pill
                         string statTxt = "日期无效";
@@ -430,7 +555,7 @@ namespace CountdownWidget
                         var statLbl = new TextBlock { Text = statTxt, FontSize = 11.5, FontWeight = FontWeights.SemiBold, FontFamily = WidgetNumFont };
                         statLbl.SetResourceReference(TextBlock.ForegroundProperty, resolved == null ? "Danger" : (resolved.IsToday ? "Gold" : "Accent"));
                         statPill.Child = statLbl;
-                        Grid.SetColumn(statPill, 4); topRow.Children.Add(statPill);
+                        Grid.SetColumn(statPill, 5); topRow.Children.Add(statPill);
 
                         // Right Action Buttons: Share | Delete
                         var actCol = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
@@ -447,6 +572,7 @@ namespace CountdownWidget
 
                         var delBtn = ActionButton("移除", () =>
                         {
+                            pushUndo();
                             Config.items.RemoveAt(capturedIdx);
                             liveCommit(false);
                             renderCards();
@@ -458,15 +584,16 @@ namespace CountdownWidget
                         delBtn.FontSize = 11.5;
                         actCol.Children.Add(delBtn);
 
-                        Grid.SetColumn(actCol, 5); topRow.Children.Add(actCol);
+                        Grid.SetColumn(actCol, 6); topRow.Children.Add(actCol);
 
                         // Row 2: Rich metadata pills (Kind: 倒数/正数 | Repeat cycle | Pin to taskbar | Solar subtitle for lunar)
-                        var metaRow = new DockPanel { Margin = new Thickness(82, 8, 0, 0) };
+                        var metaRow = new DockPanel { Margin = new Thickness(104, 8, 0, 0) };
                         cardStack.Children.Add(metaRow);
 
                         bool isPinned = resolved != null && string.Equals(Config.pinned_name, resolved.Name, StringComparison.Ordinal);
                         var pinToggle = ActionButton(isPinned ? "★ 任务栏主显" : "☆ 设为主显", () =>
                         {
+                            pushUndo();
                             Config.pinned_name = isPinned ? "" : (resolved != null ? resolved.Name : item.name);
                             liveCommit(false);
                             renderCards();
@@ -486,6 +613,7 @@ namespace CountdownWidget
                         bool isUp = string.Equals(item.kind, "countup", StringComparison.OrdinalIgnoreCase);
                         var kindBtn = ActionButton(isUp ? "正数 · 纪念日" : "倒数 · 期待日", () =>
                         {
+                            pushUndo();
                             item.kind = isUp ? "countdown" : "countup";
                             if (item.kind == "countup") item.repeat = "none";
                             liveCommit(false);
@@ -505,6 +633,7 @@ namespace CountdownWidget
                             int rIdx = Math.Max(0, Array.IndexOf(repIds, (item.repeat ?? "none").ToLowerInvariant()));
                             var repBtn = ActionButton("↻ " + repLbls[rIdx], () =>
                             {
+                                pushUndo();
                                 item.repeat = repIds[(rIdx + 1) % repIds.Length];
                                 liveCommit(false);
                                 renderCards();
@@ -535,6 +664,7 @@ namespace CountdownWidget
 
                 addBtn.Click += (s, e) =>
                 {
+                    pushUndo();
                     Config.items.Add(new CfgItem
                     {
                         name = "新的期待",
@@ -558,6 +688,7 @@ namespace CountdownWidget
                 {
                     AddMenu(presetMenu, label, () =>
                     {
+                        pushUndo();
                         Config.items.Add(factory());
                         liveCommit(false);
                         renderCards();
@@ -976,12 +1107,17 @@ namespace CountdownWidget
                 var startupChk = new CheckBox { IsChecked = IsStartupEnabled() };
                 startupChk.Checked += (s, e) => { SetStartupEnabled(true); syncTxt.Text = "✓ 已开启开机自启"; syncTimer.Stop(); syncTimer.Start(); };
                 startupChk.Unchecked += (s, e) => { SetStartupEnabled(false); syncTxt.Text = "已关闭开机自启"; syncTimer.Stop(); syncTimer.Start(); };
-                addSettingRow(s1, "开机自动启动", "随 Windows 登录自动静默启动并保持看门狗守护，无需手工运行脚本。", startupChk);
+                addSettingRow(s1, "开机自动启动", "以单文件自托管守护模式随 Windows 登录静默启动（Countdown.exe --watchdog），无需手工运行脚本。", startupChk);
 
                 var fsChk = new CheckBox { IsChecked = Config.hide_fullscreen };
                 fsChk.Checked += (s, e) => { Config.hide_fullscreen = true; liveCommit(false); };
                 fsChk.Unchecked += (s, e) => { Config.hide_fullscreen = false; liveCommit(false); };
                 addSettingRow(s1, "全屏应用自动隐身", "看视频、演示 PPT 或全屏游戏时自动淡出避让，退出全屏立即无感恢复。", fsChk);
+
+                var trayChk = new CheckBox { IsChecked = Config.show_tray_icon };
+                trayChk.Checked += (s, e) => { Config.show_tray_icon = true; liveCommit(false); };
+                trayChk.Unchecked += (s, e) => { Config.show_tray_icon = false; liveCommit(false); };
+                addSettingRow(s1, "系统托盘兜底图标", "在右下角托盘区常驻图标（左键开浮层 / 双击开工作台 / 右键菜单），即使任务栏被遮挡也能随时找到它。", trayChk);
 
                 int clickIdx = string.Equals(Config.click_action, "seconds", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
                 var clickSeg = makeStudioSegmented(new[] { "展开期待浮层", "切换时分秒" }, clickIdx, idx =>
@@ -1040,6 +1176,7 @@ namespace CountdownWidget
                             var imported = Json.Deserialize<Cfg>(File.ReadAllText(dlg.FileName));
                             if (imported != null)
                             {
+                                pushUndo();
                                 imported.items = imported.items ?? new List<CfgItem>();
                                 Config = imported;
                                 liveCommit(true);
@@ -1073,7 +1210,18 @@ namespace CountdownWidget
             syncNavHighlight();
             refreshCurrentTab();
 
-            editor.PreviewKeyDown += (s, e) => { if (e.Key == Key.Escape) editor.Close(); };
+            editor.PreviewKeyDown += (s, e) =>
+            {
+                if (e.Key == Key.Escape)
+                {
+                    editor.Close();
+                }
+                else if (e.Key == Key.Z && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && !(Keyboard.FocusedElement is TextBox))
+                {
+                    performUndo();
+                    e.Handled = true;
+                }
+            };
             editor.Show();
             editor.Activate();
         }
