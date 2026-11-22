@@ -933,109 +933,237 @@ namespace CountdownWidget
                 addSwitch("微光动效与翻牌", Config.motion, v => { Config.motion = v; liveCommit(true); });
                 addSwitch("任务栏直接显示时分秒", Config.show_seconds, v => { Config.show_seconds = v; liveCommit(false); });
 
-                // --- Visual 14-Skin Swatch Gallery (3-Column Grid) ---
-                var galHead = Label("精选质感皮肤（14 款 · 点击即换）", 13.5, "Ink");
-                galHead.FontWeight = FontWeights.SemiBold;
-                galHead.Margin = new Thickness(2, 0, 0, 10);
-                stack.Children.Add(galHead);
+                // --- Balanced Visual Skin Gallery (Zero-Orphan Bento Sections: 8 Daily 4×2 + 6 Seasonal 3×2) ---
+                bool galleryLight = IsLight();
+                var nowGal = DateTime.Now;
+                var heroSample = GetResolvedItems(nowGal).FirstOrDefault();
+                string sampleName = heroSample != null ? heroSample.Name : "春节";
+                if (sampleName.Length > 4) sampleName = sampleName.Substring(0, 4);
+                string sampleIcon = heroSample != null ? heroSample.ResolvedIcon : "sparkle";
+                string sampleDays = heroSample != null
+                    ? (heroSample.IsToday ? "今天" : (heroSample.DaysValue + " 天"))
+                    : "33 天";
+                double sampleProg = heroSample != null ? Math.Max(0.22, Math.Min(0.88, heroSample.Progress)) : 0.62;
 
-                var gallery = new Grid();
-                gallery.ColumnDefinitions.Add(new ColumnDefinition());
-                gallery.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
-                gallery.ColumnDefinitions.Add(new ColumnDefinition());
-                gallery.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
-                gallery.ColumnDefinitions.Add(new ColumnDefinition());
-                stack.Children.Add(gallery);
+                var allSelectableIds = new List<string>();
+                var allSkinCards = new List<Border>();
+                var allCheckBadges = new List<Border>();
 
-                var skinIdsAll = new List<string> { "auto" };
-                for (int i = 0; i < SkinCatalog.Length; i++) skinIdsAll.Add(SkinCatalog[i].Id);
-
-                int rowsNeeded = (skinIdsAll.Count + 2) / 3;
-                for (int r = 0; r < rowsNeeded; r++) gallery.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-                var skinBorders = new List<Border>();
                 Action syncSkinSelection = () =>
                 {
                     string activeS = string.IsNullOrEmpty(Config.skin) ? "default" : Config.skin;
-                    for (int i = 0; i < skinBorders.Count; i++)
+                    for (int i = 0; i < allSkinCards.Count; i++)
                     {
-                        bool on = string.Equals(skinIdsAll[i], activeS, StringComparison.OrdinalIgnoreCase);
-                        skinBorders[i].BorderThickness = new Thickness(on ? 2 : 1);
-                        skinBorders[i].SetResourceReference(Border.BorderBrushProperty, on ? "Accent" : "Line");
+                        bool on = string.Equals(allSelectableIds[i], activeS, StringComparison.OrdinalIgnoreCase);
+                        allSkinCards[i].BorderThickness = new Thickness(on ? 1.8 : 1);
+                        allSkinCards[i].SetResourceReference(Border.BorderBrushProperty, on ? "Accent" : "Line");
+                        allSkinCards[i].SetResourceReference(Border.BackgroundProperty, on ? "Surface" : "Surface");
+                        allCheckBadges[i].Visibility = on ? Visibility.Visible : Visibility.Collapsed;
                     }
                 };
 
-                bool galleryLight = IsLight();
-                for (int i = 0; i < skinIdsAll.Count; i++)
+                Action<string, string, string[], int> buildSkinSection = (secTitle, secHint, ids, cols) =>
                 {
-                    string sid = skinIdsAll[i];
-                    bool isAuto = sid == "auto";
-                    var spec = isAuto ? null : FindSkin(sid);
-                    var pal = isAuto ? PickSkinPalette("christmas", galleryLight) : (galleryLight ? spec.LightPal : spec.DarkPal);
+                    var secHead = new DockPanel { Margin = new Thickness(2, 4, 2, 10) };
+                    var shRight = Label(secHint, 10.5, "Muted");
+                    shRight.VerticalAlignment = VerticalAlignment.Bottom;
+                    DockPanel.SetDock(shRight, Dock.Right);
+                    secHead.Children.Add(shRight);
+                    var shLeft = Label(secTitle, 13.5, "Ink");
+                    shLeft.FontWeight = FontWeights.SemiBold;
+                    secHead.Children.Add(shLeft);
+                    stack.Children.Add(secHead);
 
-                    var card = new Border
+                    var grid = new Grid { Margin = new Thickness(0, 0, 0, 12) };
+                    for (int c = 0; c < cols; c++)
                     {
-                        CornerRadius = new CornerRadius(11),
-                        Padding = new Thickness(12, 11, 12, 11),
-                        Margin = new Thickness(0, 0, 0, 10),
-                        Cursor = Cursors.Hand
-                    };
-                    card.SetResourceReference(Border.BackgroundProperty, "Surface");
-
-                    var cStack = new StackPanel();
-                    card.Child = cStack;
-
-                    // Mini pill swatch preview
-                    var swatch = new Border
-                    {
-                        Height = 40,
-                        CornerRadius = new CornerRadius(8),
-                        Padding = new Thickness(10, 0, 10, 0),
-                        Margin = new Thickness(0, 0, 0, 8),
-                        BorderThickness = new Thickness(1),
-                        BorderBrush = Brush(galleryLight ? "#1A000000" : "#24FFFFFF")
-                    };
-                    if (sid == "minimal")
-                    {
-                        swatch.Background = new LinearGradientBrush(C_(galleryLight ? "#E4ECF5" : "#1E2530"), C_(galleryLight ? "#F2ECE4" : "#252C38"), 0);
+                        if (c > 0) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+                        grid.ColumnDefinitions.Add(new ColumnDefinition());
                     }
-                    else if (isAuto)
+                    int rows = (ids.Length + cols - 1) / cols;
+                    for (int r = 0; r < rows; r++) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    stack.Children.Add(grid);
+
+                    for (int i = 0; i < ids.Length; i++)
                     {
-                        swatch.Background = new LinearGradientBrush(C_("#FBF3E8"), C_("#E5EFE8"), new Point(0, 0), new Point(1, 1));
+                        string sid = ids[i];
+                        bool isAuto = sid == "auto";
+                        var spec = isAuto ? null : FindSkin(sid);
+
+                        // Showcase each skin's signature mood (dark-signature skins like Vinyl/Aurora/Christmas show their iconic dark richness)
+                        bool swatchLight = isAuto ? true
+                            : (sid == "default" || sid == "minimal") ? galleryLight
+                            : spec.LightDefault;
+                        var pal = isAuto ? PickSkinPalette("christmas", false) : (swatchLight ? spec.LightPal : spec.DarkPal);
+
+                        var card = new Border
+                        {
+                            CornerRadius = new CornerRadius(11),
+                            Padding = new Thickness(11, 10, 11, 11),
+                            Margin = new Thickness(0, 0, 0, 10),
+                            Cursor = Cursors.Hand,
+                            BorderThickness = new Thickness(1)
+                        };
+                        card.SetResourceReference(Border.BackgroundProperty, "Surface");
+                        card.SetResourceReference(Border.BorderBrushProperty, "Line");
+
+                        var cStack = new StackPanel();
+                        card.Child = cStack;
+
+                        // Miniature taskbar pill preview stage
+                        var stage = new Grid { Margin = new Thickness(0, 0, 0, 9) };
+                        var swatch = new Border
+                        {
+                            Height = 46,
+                            CornerRadius = new CornerRadius(9),
+                            Padding = new Thickness(10, 0, 10, 0),
+                            ClipToBounds = true,
+                            BorderThickness = new Thickness(sid == "minimal" ? 1 : 1)
+                        };
+
+                        if (sid == "minimal")
+                        {
+                            swatch.Background = new LinearGradientBrush(C_(galleryLight ? "#EDF1F6" : "#1B212A"), C_(galleryLight ? "#E4EAF1" : "#151A22"), 45);
+                            swatch.BorderBrush = Brush(galleryLight ? "#28000000" : "#26FFFFFF");
+                        }
+                        else if (isAuto)
+                        {
+                            var autoGrad = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 1) };
+                            autoGrad.GradientStops.Add(new GradientStop(C_("#1D3930"), 0.0));
+                            autoGrad.GradientStops.Add(new GradientStop(C_("#24334C"), 0.55));
+                            autoGrad.GradientStops.Add(new GradientStop(C_("#5E2421"), 1.0));
+                            swatch.Background = autoGrad;
+                            swatch.BorderBrush = Brush("#33FFFFFF");
+                        }
+                        else
+                        {
+                            swatch.Background = new LinearGradientBrush(C_(pal.Bg1), C_(pal.Bg2), new Point(0, 0), new Point(1, 1));
+                            swatch.BorderBrush = Brush(swatchLight ? "#1C000000" : "#28FFFFFF");
+                        }
+
+                        var swGrid = new Grid();
+                        if (sid == "xuanpaper" || sid == "vinyl" || sid == "cream" || sid == "spring")
+                        {
+                            swGrid.Children.Add(new Rectangle { Fill = PaperGrainBrush(swatchLight), IsHitTestVisible = false, Opacity = 0.9 });
+                        }
+
+                        var swDock = new DockPanel { VerticalAlignment = VerticalAlignment.Center };
+                        string numHex = isAuto ? "#F0D18A" : pal.Accent;
+                        string lblHex = isAuto ? "#F5EFE4" : pal.Text;
+                        string icoHex = isAuto ? "#F0D18A" : pal.Detail;
+
+                        var swNum = new TextBlock
+                        {
+                            Text = sampleDays,
+                            FontFamily = WidgetNumFont,
+                            FontSize = cols == 4 ? 14 : 15.5,
+                            FontWeight = FontWeights.Bold,
+                            Foreground = Brush(numHex),
+                            VerticalAlignment = VerticalAlignment.Center
+                        };
+                        DockPanel.SetDock(swNum, Dock.Right);
+                        swDock.Children.Add(swNum);
+
+                        var leftInfo = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+                        var miniIco = BuildEventIcon(isAuto ? "sparkle" : sampleIcon, 11.5, Brush(icoHex), 1.45);
+                        miniIco.Margin = new Thickness(0, 0, 5, 0);
+                        leftInfo.Children.Add(miniIco);
+                        leftInfo.Children.Add(new TextBlock
+                        {
+                            Text = isAuto ? "节庆联动" : sampleName,
+                            FontSize = cols == 4 ? 10.5 : 11,
+                            FontWeight = FontWeights.Medium,
+                            Foreground = Brush(lblHex),
+                            TextTrimming = TextTrimming.CharacterEllipsis,
+                            VerticalAlignment = VerticalAlignment.Center
+                        });
+                        swDock.Children.Add(leftInfo);
+                        swGrid.Children.Add(swDock);
+
+                        // Bottom 2px signature micro progress hairline (omitted in frameless minimal mode)
+                        if (sid != "minimal")
+                        {
+                            var progBar = new Grid { Height = 2, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 2) };
+                            progBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(sampleProg, GridUnitType.Star) });
+                            progBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1 - sampleProg, GridUnitType.Star) });
+                            var progFill = new Border { Background = Brush(HexA("CC", numHex)), CornerRadius = new CornerRadius(1) };
+                            Grid.SetColumn(progFill, 0);
+                            progBar.Children.Add(progFill);
+                            swGrid.Children.Add(progBar);
+                        }
+
+                        swatch.Child = swGrid;
+                        stage.Children.Add(swatch);
+
+                        // Crisp active checkmark badge in top-right of swatch
+                        var chkBadge = new Border
+                        {
+                            Width = 18, Height = 18, CornerRadius = new CornerRadius(9),
+                            HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
+                            Margin = new Thickness(0, -4, -4, 0),
+                            Visibility = Visibility.Collapsed
+                        };
+                        chkBadge.SetResourceReference(Border.BackgroundProperty, "Accent");
+                        chkBadge.Child = new TextBlock { Text = "✓", FontSize = 10, FontWeight = FontWeights.Bold, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                        stage.Children.Add(chkBadge);
+
+                        cStack.Children.Add(stage);
+
+                        var sName = Label(isAuto ? "跟随最近节日" : spec.Label, cols == 4 ? 11.5 : 12, "Ink");
+                        sName.FontWeight = FontWeights.SemiBold;
+                        sName.TextTrimming = TextTrimming.CharacterEllipsis;
+                        cStack.Children.Add(sName);
+
+                        var sSub = Label(isAuto ? "临近传统佳节自动切换氛围" : (spec.Subtitle ?? ""), 10, "Muted");
+                        sSub.Margin = new Thickness(0, 2, 0, 0);
+                        sSub.TextTrimming = TextTrimming.CharacterEllipsis;
+                        cStack.Children.Add(sSub);
+
+                        card.MouseEnter += (s, e) =>
+                        {
+                            string activeS = string.IsNullOrEmpty(Config.skin) ? "default" : Config.skin;
+                            if (!string.Equals(sid, activeS, StringComparison.OrdinalIgnoreCase))
+                                card.SetResourceReference(Border.BorderBrushProperty, "Muted");
+                        };
+                        card.MouseLeave += (s, e) =>
+                        {
+                            string activeS = string.IsNullOrEmpty(Config.skin) ? "default" : Config.skin;
+                            if (!string.Equals(sid, activeS, StringComparison.OrdinalIgnoreCase))
+                                card.SetResourceReference(Border.BorderBrushProperty, "Line");
+                        };
+                        card.MouseLeftButtonUp += (s, e) =>
+                        {
+                            Config.skin = sid;
+                            liveCommit(true);
+                            syncSkinSelection();
+                            refreshSandbox();
+                        };
+
+                        Grid.SetRow(card, i / cols);
+                        Grid.SetColumn(card, (i % cols) * 2);
+                        grid.Children.Add(card);
+
+                        allSelectableIds.Add(sid);
+                        allSkinCards.Add(card);
+                        allCheckBadges.Add(chkBadge);
                     }
-                    else
-                    {
-                        swatch.Background = new LinearGradientBrush(C_(pal.Bg1), C_(pal.Bg2), new Point(0, 0), new Point(1, 1));
-                    }
+                };
 
-                    var swDock = new DockPanel();
-                    swatch.Child = swDock;
-                    var swNum = new TextBlock { Text = "85 天", FontFamily = WidgetNumFont, FontSize = 15, FontWeight = FontWeights.Bold, Foreground = Brush(isAuto ? "#286B51" : pal.Accent), VerticalAlignment = VerticalAlignment.Center };
-                    DockPanel.SetDock(swNum, Dock.Right); swDock.Children.Add(swNum);
-                    var swLbl = new TextBlock { Text = isAuto ? "✦ 智能" : (spec.Seal ?? "期待"), FontSize = 10.5, Foreground = Brush(isAuto ? "#4F2D23" : pal.Text), VerticalAlignment = VerticalAlignment.Center };
-                    swDock.Children.Add(swLbl);
-                    cStack.Children.Add(swatch);
+                // Section 1: 8 Daily Artisanal Skins (4 cols × 2 rows — 100% balanced!)
+                buildSkinSection(
+                    "日常质感 · 大师皮肤",
+                    "8 款常驻 · 均支持深/浅双模自适应",
+                    new[] { "default", "minimal", "xuanpaper", "vinyl", "monet", "cream", "celadon", "aurora" },
+                    4
+                );
 
-                    var sName = Label(isAuto ? "跟随最近节日" : spec.Label, 12, "Ink");
-                    sName.FontWeight = FontWeights.SemiBold;
-                    cStack.Children.Add(sName);
-                    var sSub = Label(isAuto ? "临近节日自动切换主题" : (spec.Subtitle ?? ""), 10, "Muted");
-                    sSub.Margin = new Thickness(0, 2, 0, 0);
-                    cStack.Children.Add(sSub);
-
-                    card.MouseLeftButtonUp += (s, e) =>
-                    {
-                        Config.skin = sid;
-                        liveCommit(true);
-                        syncSkinSelection();
-                        refreshSandbox();
-                    };
-
-                    Grid.SetRow(card, i / 3);
-                    Grid.SetColumn(card, (i % 3) * 2);
-                    gallery.Children.Add(card);
-                    skinBorders.Add(card);
-                }
+                // Section 2: 6 Seasonal & Festival Editions (3 cols × 2 rows — 100% balanced!)
+                buildSkinSection(
+                    "岁时节庆 · 氛围限定",
+                    "6 款节庆 · 含智能跟随",
+                    new[] { "auto", "christmas", "newyear", "spring", "midautumn", "national" },
+                    3
+                );
 
                 syncSkinSelection();
                 refreshSandbox();

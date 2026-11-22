@@ -323,17 +323,16 @@ namespace CountdownWidget
 
             WindowChrome.SetWindowChrome(w, new WindowChrome
             {
-                CaptionHeight = 44,
+                CaptionHeight = 36,
                 CornerRadius = new CornerRadius(0),
                 GlassFrameThickness = new Thickness(-1),
                 ResizeBorderThickness = resizable ? new Thickness(6) : new Thickness(0),
-                UseAeroCaptionButtons = false
+                UseAeroCaptionButtons = true
             });
 
             Theme(w, light);
 
-            var frame = new Border { BorderThickness = new Thickness(0) };
-            frame.SetResourceReference(Border.BackgroundProperty, "Canvas");
+            var frame = new Border { BorderThickness = new Thickness(0), Background = Brushes.Transparent };
             w.Content = frame;
 
             bool micaActive = false;
@@ -345,8 +344,16 @@ namespace CountdownWidget
                     micaActive = ApplyWin11Backdrop(w, handle, isLight, 2 /* Mica */);
                 }
                 SetPalette(w, isLight, micaActive);
-                if (!micaActive) w.SetResourceReference(Window.BackgroundProperty, "Canvas");
-                else w.Background = Brushes.Transparent;
+                if (!micaActive)
+                {
+                    w.SetResourceReference(Window.BackgroundProperty, "Canvas");
+                    frame.SetResourceReference(Border.BackgroundProperty, "Canvas");
+                }
+                else
+                {
+                    w.Background = Brushes.Transparent;
+                    frame.Background = Brushes.Transparent;
+                }
             };
 
             w.SourceInitialized += (s, e) => applyTheme(light);
@@ -354,45 +361,13 @@ namespace CountdownWidget
             var outer = new DockPanel();
             frame.Child = outer;
 
-            var chrome = new DockPanel { Height = 44, Margin = new Thickness(16, 0, 10, 0), Background = Brushes.Transparent };
+            // Transparent native titlebar strip: right 146px reserved for crisp native Win11 caption buttons (zero overlap!)
+            var chrome = new DockPanel { Height = 36, Margin = new Thickness(16, 0, 146, 0), Background = Brushes.Transparent };
             DockPanel.SetDock(chrome, Dock.Top);
             outer.Children.Add(chrome);
 
-            var close = ActionButton("✕", () => w.Close());
-            close.Padding = new Thickness(13, 6, 13, 6);
-            close.Background = Brushes.Transparent;
-            close.BorderThickness = new Thickness(0);
-            close.ToolTip = "关闭";
-            WindowChrome.SetIsHitTestVisibleInChrome(close, true);
-            DockPanel.SetDock(close, Dock.Right);
-            chrome.Children.Add(close);
-
-            if (resizable)
-            {
-                var maxBtn = ActionButton("▢", () => w.WindowState = w.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized);
-                maxBtn.Padding = close.Padding;
-                maxBtn.Background = Brushes.Transparent;
-                maxBtn.BorderThickness = new Thickness(0);
-                maxBtn.ToolTip = "最大化 / 还原";
-                WindowChrome.SetIsHitTestVisibleInChrome(maxBtn, true);
-                DockPanel.SetDock(maxBtn, Dock.Right);
-                chrome.Children.Add(maxBtn);
-            }
-
-            if (owner == null)
-            {
-                var minBtn = ActionButton("—", () => w.WindowState = WindowState.Minimized);
-                minBtn.Padding = close.Padding;
-                minBtn.Background = Brushes.Transparent;
-                minBtn.BorderThickness = new Thickness(0);
-                minBtn.ToolTip = "最小化";
-                WindowChrome.SetIsHitTestVisibleInChrome(minBtn, true);
-                DockPanel.SetDock(minBtn, Dock.Right);
-                chrome.Children.Add(minBtn);
-            }
-
             var brand = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-            brand.Children.Add(new Image { Source = Logo(), Width = 18, Height = 18, Margin = new Thickness(0, 0, 8, 0) });
+            brand.Children.Add(new Image { Source = Logo(), Width = 17, Height = 17, Margin = new Thickness(0, 0, 8, 0) });
             var lbl = Label(headerLabel ?? title, 12, "Muted");
             lbl.FontWeight = FontWeights.Medium;
             brand.Children.Add(lbl);
