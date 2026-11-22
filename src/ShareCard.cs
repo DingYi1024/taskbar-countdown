@@ -31,9 +31,9 @@ namespace CountdownWidget
         {
             public bool IsList;
             public int EntryIndex;
-            public int TemplateIndex; // 0=流光极夜, 1=日落琥珀, 2=宣纸宋韵, 3=黑胶唱片, 4=青松杂志, 5=拍立得
+            public int TemplateIndex; // 0=松霜冬序, 1=流光极夜, 2=日落琥珀, 3=宣纸墨韵, 4=黑胶琥珀, 5=拍立得
             public int RatioIndex;    // 0=3:4, 1=1:1, 2=16:9, 3=9:19.5 Lockscreen
-            public int SkinIndex;     // kept for backward compatibility with tests/callers
+            public int SkinIndex;     // kept for backward compatibility
             public string Quote;
             public bool ShowDate = true;
             public bool ShowWatermark = true;
@@ -44,56 +44,62 @@ namespace CountdownWidget
 
         sealed class ArtTheme
         {
-            public string Id, Name, Tag;
+            public string Id, Name, Tag, Seal;
             public string BgTop, BgMid, BgBot;
             public string SwatchA, SwatchB;
-            public string Ink, Muted, Accent, Hairline;
+            public string Surface, SurfaceStrong, Hairline, Track;
+            public string Ink, Muted, Accent, PillBg, PillFg;
             public bool IsLight;
-            public string BadgeText;
         }
 
         static readonly ArtTheme[] CuratedThemes = {
             new ArtTheme {
-                Id = "aurora", Name = "流光 · 极夜", Tag = "深邃极光氛围",
-                BgTop = "#0B1120", BgMid = "#101E36", BgBot = "#080D18",
-                SwatchA = "#0D1A33", SwatchB = "#2C9E9A",
-                Ink = "#F5F8FC", Muted = "#8EA4BF", Accent = "#5EEAD4", Hairline = "#24FFFFFF",
-                IsLight = false, BadgeText = "AURORA"
+                Id = "pine", Name = "松霜 · 冬序", Tag = "经典深林暖金", Seal = "冬序",
+                BgTop = "#1C382F", BgMid = "#162E26", BgBot = "#10221C",
+                SwatchA = "#1E3D33", SwatchB = "#D4B672",
+                Surface = "#1CFFFFFF", SurfaceStrong = "#28FFFFFF", Hairline = "#24FFFFFF", Track = "#22FFFFFF",
+                Ink = "#F6F0E2", Muted = "#A7BFB2", Accent = "#E8CE90", PillBg = "#2BE8CE90", PillFg = "#F3DEA8",
+                IsLight = false
             },
             new ArtTheme {
-                Id = "sunset", Name = "日落 · 琥珀", Tag = "电影暮色渐变",
-                BgTop = "#22142B", BgMid = "#8B3743", BgBot = "#E38B4F",
-                SwatchA = "#5E2640", SwatchB = "#EB9A56",
-                Ink = "#FFF8EF", Muted = "#F0C9B5", Accent = "#FFE09E", Hairline = "#2EFFFFFF",
-                IsLight = false, BadgeText = "GOLDEN HOUR"
+                Id = "aurora", Name = "流光 · 极夜", Tag = "深邃极光氛围", Seal = "极光",
+                BgTop = "#0C1426", BgMid = "#12213B", BgBot = "#09101E",
+                SwatchA = "#0F1E3A", SwatchB = "#38C8BD",
+                Surface = "#18FFFFFF", SurfaceStrong = "#24FFFFFF", Hairline = "#22FFFFFF", Track = "#20FFFFFF",
+                Ink = "#F2F7FC", Muted = "#90A8C4", Accent = "#63E6D8", PillBg = "#2863E6D8", PillFg = "#8FF2E6",
+                IsLight = false
             },
             new ArtTheme {
-                Id = "xuan", Name = "宣纸 · 宋韵", Tag = "东方朱砂画卷",
-                BgTop = "#F7F2E6", BgMid = "#F2E9D7", BgBot = "#EAE0CA",
-                SwatchA = "#F5EFE0", SwatchB = "#B83326",
-                Ink = "#1E1916", Muted = "#7A6D60", Accent = "#B83326", Hairline = "#1E1E1916",
-                IsLight = true, BadgeText = "墨韵"
+                Id = "sunset", Name = "日落 · 琥珀", Tag = "电影暮色渐变", Seal = "暮色",
+                BgTop = "#26162E", BgMid = "#753042", BgBot = "#C76B45",
+                SwatchA = "#5D2640", SwatchB = "#E89352",
+                Surface = "#1CFFFFFF", SurfaceStrong = "#28FFFFFF", Hairline = "#28FFFFFF", Track = "#26FFFFFF",
+                Ink = "#FFF8EF", Muted = "#EFC9B7", Accent = "#FFDC94", PillBg = "#2EFFDC94", PillFg = "#FFE8B8",
+                IsLight = false
             },
             new ArtTheme {
-                Id = "vinyl", Name = "黑胶 · 唱片", Tag = "暗房复古辉光",
-                BgTop = "#141312", BgMid = "#1B1917", BgBot = "#100F0E",
-                SwatchA = "#1A1816", SwatchB = "#E09142",
-                Ink = "#F6EFE4", Muted = "#9B9082", Accent = "#F0A44B", Hairline = "#22FFFFFF",
-                IsLight = false, BadgeText = "SIDE A"
+                Id = "xuan", Name = "宣纸 · 墨韵", Tag = "温润纸感朱砂", Seal = "墨韵",
+                BgTop = "#F9F5EB", BgMid = "#F3ECDD", BgBot = "#ECE2CE",
+                SwatchA = "#F6EFE0", SwatchB = "#B53528",
+                Surface = "#B8FFFFFF", SurfaceStrong = "#E6FFFFFF", Hairline = "#1E2B221A", Track = "#1A2B221A",
+                Ink = "#231E1A", Muted = "#7A6E62", Accent = "#B33428", PillBg = "#1CB33428", PillFg = "#A32A1F",
+                IsLight = true
             },
             new ArtTheme {
-                Id = "editorial", Name = "青松 · 杂志", Tag = "典雅国际排版",
-                BgTop = "#15322C", BgMid = "#102621", BgBot = "#0B1A17",
-                SwatchA = "#183B33", SwatchB = "#DEC082",
-                Ink = "#F7F3E8", Muted = "#9EB8AE", Accent = "#E8CA86", Hairline = "#24FFFFFF",
-                IsLight = false, BadgeText = "EDITION"
+                Id = "vinyl", Name = "黑胶 · 琥珀", Tag = "暗房复古辉光", Seal = "黑胶",
+                BgTop = "#1C1A18", BgMid = "#161413", BgBot = "#100F0E",
+                SwatchA = "#1E1C19", SwatchB = "#E09242",
+                Surface = "#16FFFFFF", SurfaceStrong = "#22FFFFFF", Hairline = "#20FFFFFF", Track = "#20FFFFFF",
+                Ink = "#F6EFE3", Muted = "#A09588", Accent = "#F0A44B", PillBg = "#28F0A44B", PillFg = "#F7BE74",
+                IsLight = false
             },
             new ArtTheme {
-                Id = "polaroid", Name = "拍立得 · 记忆", Tag = "支持拖入照片",
-                BgTop = "#F9F5EE", BgMid = "#F5EFE4", BgBot = "#F0E8DA",
-                SwatchA = "#475A7B", SwatchB = "#F5EFE4",
-                Ink = "#201D1A", Muted = "#7E7469", Accent = "#C85A34", Hairline = "#1B201D1A",
-                IsLight = true, BadgeText = "MEMORY"
+                Id = "polaroid", Name = "拍立得 · 记忆", Tag = "支持拖入照片", Seal = "留影",
+                BgTop = "#FAF6EE", BgMid = "#F5EFE3", BgBot = "#EFE7D8",
+                SwatchA = "#445778", SwatchB = "#F5EFE3",
+                Surface = "#CCFFFFFF", SurfaceStrong = "#EBFFFFFF", Hairline = "#1C241E18", Track = "#18241E18",
+                Ink = "#221E1A", Muted = "#7B7065", Accent = "#C45732", PillBg = "#1CC45732", PillFg = "#B44B27",
+                IsLight = true
             }
         };
 
@@ -117,7 +123,13 @@ namespace CountdownWidget
             };
         }
 
-        static string WeekdayZh(DateTime d)
+        static string WeekdayFullZh(DateTime d)
+        {
+            string[] w = { "星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六" };
+            return w[(int)d.DayOfWeek];
+        }
+
+        static string WeekdayShortZh(DateTime d)
         {
             string[] w = { "周日", "周一", "周二", "周三", "周四", "周五", "周六" };
             return w[(int)d.DayOfWeek];
@@ -129,79 +141,216 @@ namespace CountdownWidget
             return m >= 1 && m <= 12 ? names[m] : "";
         }
 
+        static int IsoWeek(DateTime d)
+        {
+            var cal = CultureInfo.InvariantCulture.Calendar;
+            return cal.GetWeekOfYear(d, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+        }
+
+        static string RelativeSpanTag(ShareEntry e, DateTime now)
+        {
+            if (e.IsCountup)
+            {
+                int days = Math.Max(1, (now.Date - e.Date.Date).Days + 1);
+                if (days >= 365) return "已相伴 " + (days / 365) + " 年+";
+                return "纪念正数";
+            }
+            if (e.Date <= now) return "已抵达";
+            int d = (e.Date.Date - now.Date).Days;
+            if (d == 0) return "就是今天";
+            if (d == 1) return "就在明天";
+            if (d < 7) return "就在本周";
+            if (d < 28) return "约 " + Math.Max(1, (int)Math.Round(d / 7.0)) + " 周后";
+            return "约 " + Math.Max(1, (int)Math.Round(d / 30.0)) + " 个月后";
+        }
+
+        static string CompactWeekText(ShareEntry e, DateTime now)
+        {
+            int d = e.IsCountup ? Math.Max(1, (now.Date - e.Date.Date).Days + 1) : Math.Max(0, (e.Date.Date - now.Date).Days);
+            int w = d / 7, rem = d % 7;
+            if (w == 0) return d + " 天";
+            return rem == 0 ? (w + " 周") : (w + " 周 " + rem + " 天");
+        }
+
         static string EntryDayNumber(ShareEntry e, DateTime now, out bool isNum, out string unit)
         {
             if (e.IsCountup)
             {
                 int elapsed = Math.Max(1, (now.Date - e.Date.Date).Days + 1);
-                isNum = true;
-                unit = "天";
+                isNum = true; unit = "天";
                 return elapsed.ToString(CultureInfo.InvariantCulture);
             }
-            if (e.Date <= now)
-            {
-                isNum = false;
-                unit = "";
-                return "已抵达";
-            }
+            if (e.Date <= now) { isNum = false; unit = ""; return "已抵达"; }
             int d = (e.Date.Date - now.Date).Days;
-            if (d == 0)
-            {
-                isNum = false;
-                unit = "";
-                return "就是今天";
-            }
-            isNum = true;
-            unit = "天";
+            if (d == 0) { isNum = false; unit = ""; return "今天"; }
+            isNum = true; unit = "天";
             return d.ToString(CultureInfo.InvariantCulture);
         }
 
-        static List<ShareEntry> OrderEntries(List<ShareEntry> entries, DateTime now)
+        static List<ShareEntry> OrderEntries(List<ShareEntry> entries, DateTime now, out int maxDays)
         {
-            return entries
+            var list = entries
                 .OrderBy(e => e.IsCountup ? 1 : (e.Date <= now ? 2 : 0))
                 .ThenBy(e => e.IsCountup ? -Math.Abs((now.Date - e.Date.Date).Days) : (e.Date.Date - now.Date).Days)
                 .ThenBy(e => e.Date)
                 .ToList();
+            maxDays = 1;
+            foreach (var e in list)
+            {
+                if (!e.IsCountup && e.Date > now)
+                    maxDays = Math.Max(maxDays, (e.Date.Date - now.Date).Days);
+            }
+            return list;
         }
 
-        static double CalcProgress(ShareEntry e, DateTime now)
+        // Comparative closeness bar for list cards: closer upcoming event => fuller glowing bar!
+        static double ListProgressRatio(ShareEntry e, DateTime now, int maxDays)
         {
-            if (e.IsCountup) return Math.Min(1.0, ((now.Date - e.Date.Date).Days % 365) / 365.0);
-            DateTime start = (e.StartDate > DateTime.MinValue && e.StartDate < e.Date) ? e.StartDate : e.Date.AddYears(-1);
-            double total = Math.Max(1.0, (e.Date - start).TotalDays);
-            return Math.Max(0.06, Math.Min(1.0, (now - start).TotalDays / total));
+            if (e.IsCountup) return 0.78;
+            if (e.Date <= now) return 1.0;
+            int d = Math.Max(0, (e.Date.Date - now.Date).Days);
+            if (d == 0) return 1.0;
+            int ceiling = Math.Max(maxDays + 18, 100);
+            double r = 1.0 - (double)d / ceiling;
+            return Math.Max(0.14, Math.Min(0.92, r));
+        }
+
+        // Real cycle progress for single-day focus card
+        static double RealSingleProgress(ShareEntry e, DateTime now, out DateTime cycleStart)
+        {
+            if (e.IsCountup)
+            {
+                cycleStart = e.Date;
+                int elapsed = Math.Max(1, (now.Date - e.Date.Date).Days + 1);
+                return Math.Max(0.08, Math.Min(1.0, (elapsed % 365) / 365.0));
+            }
+            cycleStart = (e.StartDate > DateTime.MinValue && e.StartDate < e.Date) ? e.StartDate : e.Date.AddYears(-1);
+            double total = Math.Max(1.0, (e.Date - cycleStart).TotalDays);
+            return Math.Max(0.06, Math.Min(1.0, (now - cycleStart).TotalDays / total));
+        }
+
+        static double YearProgress(DateTime now, out int passed, out int remain)
+        {
+            int total = DateTime.IsLeapYear(now.Year) ? 366 : 365;
+            passed = now.DayOfYear;
+            remain = Math.Max(0, total - passed);
+            return Math.Max(0.01, Math.Min(1.0, (double)passed / total));
+        }
+
+        static Grid BuildProgressTrack(double ratio, double height, string fillHex, string trackHex)
+        {
+            double clamped = Math.Max(0.04, Math.Min(1.0, ratio));
+            var g = new Grid { Height = height };
+            g.Children.Add(new Border { Background = Brush(trackHex), CornerRadius = new CornerRadius(height / 2) });
+            var split = new Grid();
+            split.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(clamped, GridUnitType.Star) });
+            split.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Max(0.001, 1.0 - clamped), GridUnitType.Star) });
+            var fill = new Border { Background = Brush(fillHex), CornerRadius = new CornerRadius(height / 2) };
+            Grid.SetColumn(fill, 0);
+            split.Children.Add(fill);
+            g.Children.Add(split);
+            return g;
+        }
+
+        static Border BuildPill(string text, string bgHex, string fgHex, double fontSize = 9.5)
+        {
+            var b = new Border
+            {
+                Background = Brush(bgHex),
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(8, 3, 8, 3),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            b.Child = new TextBlock { Text = text, FontSize = fontSize, FontWeight = FontWeights.SemiBold, Foreground = Brush(fgHex) };
+            return b;
         }
 
         static void AddRadialGlow(Canvas canvas, double cx, double cy, double rx, double ry, string hexCore, byte alphaCore)
         {
             var c = C_(hexCore);
-            var rad = new RadialGradientBrush
-            {
-                GradientOrigin = new Point(0.5, 0.5),
-                Center = new Point(0.5, 0.5),
-                RadiusX = 0.5,
-                RadiusY = 0.5
-            };
+            var rad = new RadialGradientBrush { GradientOrigin = new Point(0.5, 0.5), Center = new Point(0.5, 0.5), RadiusX = 0.5, RadiusY = 0.5 };
             rad.GradientStops.Add(new GradientStop(Color.FromArgb(alphaCore, c.R, c.G, c.B), 0.0));
             rad.GradientStops.Add(new GradientStop(Color.FromArgb((byte)(alphaCore * 0.42), c.R, c.G, c.B), 0.48));
             rad.GradientStops.Add(new GradientStop(Color.FromArgb(0, c.R, c.G, c.B), 1.0));
             rad.Freeze();
-
             var el = new Ellipse { Width = rx * 2, Height = ry * 2, Fill = rad, IsHitTestVisible = false };
-            Canvas.SetLeft(el, cx - rx);
-            Canvas.SetTop(el, cy - ry);
+            Canvas.SetLeft(el, cx - rx); Canvas.SetTop(el, cy - ry);
             canvas.Children.Add(el);
+        }
+
+        // Thematic vector artwork tucked subtly behind Hero big number (just like the Pine Tree in reference!)
+        static FrameworkElement BuildHeroEmblem(string themeId, string heroName, string accentHex, double size)
+        {
+            var vb = new Viewbox { Width = size, Height = size, Stretch = Stretch.Uniform, IsHitTestVisible = false };
+            var cv = new Canvas { Width = 120, Height = 120 };
+            var stroke = Brush(HexA("36", accentHex));
+            var fillSoft = Brush(HexA("16", accentHex));
+
+            string fest = FestivalForName(heroName);
+            if (themeId == "pine" || fest == "christmas")
+            {
+                // Iconic Christmas pine tree + top star + soft ornament dot
+                cv.Children.Add(new System.Windows.Shapes.Path
+                {
+                    Data = Geometry.Parse("M 60,24 L 36,56 L 48,56 L 26,84 L 42,84 L 20,108 L 100,108 L 78,84 L 94,84 L 72,56 L 84,56 Z"),
+                    Stroke = stroke, StrokeThickness = 3.2, Fill = fillSoft, StrokeLineJoin = PenLineJoin.Round
+                });
+                cv.Children.Add(new System.Windows.Shapes.Path
+                {
+                    Data = Geometry.Parse("M 60,6 L 63.5,14.5 L 72.5,15.5 L 65.5,21.5 L 67.5,30 L 60,25.5 L 52.5,30 L 54.5,21.5 L 47.5,15.5 L 56.5,14.5 Z"),
+                    Fill = Brush(HexA("44", accentHex))
+                });
+                var orn = new Ellipse { Width = 13, Height = 13, Fill = Brush("#44C85242") };
+                Canvas.SetLeft(orn, 53); Canvas.SetTop(orn, 74); cv.Children.Add(orn);
+            }
+            else if (fest == "spring")
+            {
+                // Traditional festive lantern
+                cv.Children.Add(new System.Windows.Shapes.Path
+                {
+                    Data = Geometry.Parse("M 60,12 L 60,24 M 42,24 L 78,24 M 42,86 L 78,86 M 60,86 L 60,108 M 60,25 C 22,25 22,85 60,85 C 98,85 98,25 60,25 Z M 60,25 C 42,25 42,85 60,85 M 60,25 C 78,25 78,85 60,85"),
+                    Stroke = stroke, StrokeThickness = 2.8, Fill = fillSoft, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round
+                });
+            }
+            else if (themeId == "vinyl")
+            {
+                // Concentric vinyl grooves
+                for (int i = 0; i < 4; i++)
+                {
+                    double d = 44 + i * 20;
+                    var e = new Ellipse { Width = d, Height = d, Stroke = stroke, StrokeThickness = 1.8 };
+                    Canvas.SetLeft(e, 60 - d / 2); Canvas.SetTop(e, 60 - d / 2); cv.Children.Add(e);
+                }
+                var core = new Ellipse { Width = 22, Height = 22, Fill = fillSoft, Stroke = stroke, StrokeThickness = 2 };
+                Canvas.SetLeft(core, 49); Canvas.SetTop(core, 49); cv.Children.Add(core);
+            }
+            else if (themeId == "xuan")
+            {
+                // Poetic ink moon + wave
+                var moon = new Ellipse { Width = 78, Height = 78, Fill = fillSoft, Stroke = stroke, StrokeThickness = 2.2 };
+                Canvas.SetLeft(moon, 21); Canvas.SetTop(moon, 18); cv.Children.Add(moon);
+                cv.Children.Add(new System.Windows.Shapes.Path { Data = Geometry.Parse("M 10,82 Q 40,66 64,78 T 112,72"), Stroke = stroke, StrokeThickness = 2.4 });
+            }
+            else
+            {
+                // Celestial star & orbital rings (Aurora / Sunset)
+                var r1 = new Ellipse { Width = 86, Height = 86, Stroke = stroke, StrokeThickness = 2.0, StrokeDashArray = new DoubleCollection { 4, 4 } };
+                Canvas.SetLeft(r1, 17); Canvas.SetTop(r1, 17); cv.Children.Add(r1);
+                var r2 = new Ellipse { Width = 52, Height = 52, Stroke = stroke, StrokeThickness = 1.6, Fill = fillSoft };
+                Canvas.SetLeft(r2, 34); Canvas.SetTop(r2, 34); cv.Children.Add(r2);
+                cv.Children.Add(new System.Windows.Shapes.Path { Data = Geometry.Parse("M 86,20 L 89,29 L 98,32 L 89,35 L 86,44 L 83,35 L 74,32 L 83,29 Z"), Fill = Brush(HexA("55", accentHex)) });
+            }
+
+            vb.Child = cv;
+            return vb;
         }
 
         static Grid BuildBackdropLayer(int w, int h, ArtTheme th)
         {
             var layer = new Grid { Width = w, Height = h, ClipToBounds = true, IsHitTestVisible = false };
-
-            // Base rich multi-stop gradient
-            var bg = new LinearGradientBrush { StartPoint = new Point(0.08, 0), EndPoint = new Point(0.92, 1) };
+            var bg = new LinearGradientBrush { StartPoint = new Point(0.1, 0), EndPoint = new Point(0.9, 1) };
             bg.GradientStops.Add(new GradientStop(C_(th.BgTop), 0.0));
-            bg.GradientStops.Add(new GradientStop(C_(th.BgMid), 0.54));
+            bg.GradientStops.Add(new GradientStop(C_(th.BgMid), 0.55));
             bg.GradientStops.Add(new GradientStop(C_(th.BgBot), 1.0));
             bg.Freeze();
             layer.Background = bg;
@@ -209,104 +358,33 @@ namespace CountdownWidget
             var art = new Canvas { Width = w, Height = h, IsHitTestVisible = false };
             layer.Children.Add(art);
 
-            if (th.Id == "aurora")
+            if (th.Id == "pine")
             {
-                AddRadialGlow(art, w * 0.85, h * 0.14, w * 0.68, w * 0.68, "#38D9C5", 105);
-                AddRadialGlow(art, w * 0.12, h * 0.78, w * 0.62, w * 0.62, "#5E6AF5", 95);
-                AddRadialGlow(art, w * 0.72, h * 0.60, w * 0.48, w * 0.48, "#A162F7", 62);
-                // Delicate celestial orbital ring
-                var orb = new Ellipse
-                {
-                    Width = w * 0.88, Height = w * 0.88,
-                    Stroke = Brush("#16FFFFFF"), StrokeThickness = 1.0
-                };
-                Canvas.SetLeft(orb, w * 0.42);
-                Canvas.SetTop(orb, -w * 0.18);
-                art.Children.Add(orb);
+                AddRadialGlow(art, w * 0.85, h * 0.16, w * 0.56, w * 0.56, "#3D7A62", 52);
+                AddRadialGlow(art, w * 0.14, h * 0.86, w * 0.52, w * 0.52, "#D4B672", 24);
+            }
+            else if (th.Id == "aurora")
+            {
+                AddRadialGlow(art, w * 0.84, h * 0.14, w * 0.64, w * 0.64, "#38D9C5", 95);
+                AddRadialGlow(art, w * 0.14, h * 0.82, w * 0.60, w * 0.60, "#5E6AF5", 85);
             }
             else if (th.Id == "sunset")
             {
-                AddRadialGlow(art, w * 0.76, h * 0.24, w * 0.60, w * 0.60, "#FFCB77", 120);
-                AddRadialGlow(art, w * 0.20, h * 0.85, w * 0.65, w * 0.65, "#4E1D47", 110);
-                // Glowing minimal solar disc
-                var sun = new Ellipse
-                {
-                    Width = w * 0.34, Height = w * 0.34,
-                    Fill = new RadialGradientBrush(Color.FromArgb(90, 255, 240, 210), Color.FromArgb(0, 255, 200, 130))
-                };
-                Canvas.SetLeft(sun, w * 0.62);
-                Canvas.SetTop(sun, h * 0.12);
-                art.Children.Add(sun);
+                AddRadialGlow(art, w * 0.78, h * 0.22, w * 0.58, w * 0.58, "#FFCB77", 105);
+                AddRadialGlow(art, w * 0.18, h * 0.84, w * 0.60, w * 0.60, "#4B1C45", 90);
             }
             else if (th.Id == "xuan")
             {
-                // Subtle warm paper wash + vermilion moon/sun disc + ink-wash distant ridge
-                AddRadialGlow(art, w * 0.78, h * 0.20, w * 0.24, w * 0.24, "#C43B2E", 34);
-                var sunDisc = new Ellipse
-                {
-                    Width = w * 0.24, Height = w * 0.24,
-                    Fill = Brush("#14B83326"),
-                    Stroke = Brush("#1CB83326"),
-                    StrokeThickness = 1.0
-                };
-                Canvas.SetLeft(sunDisc, w * 0.68);
-                Canvas.SetTop(sunDisc, h * 0.14);
-                art.Children.Add(sunDisc);
-
-                // Soft ink-wash mountain wave along lower backdrop
-                var waveGeo = Geometry.Parse(string.Format(CultureInfo.InvariantCulture,
-                    "M 0,{0} C {1},{2} {3},{4} {5},{6} L {5},{7} L 0,{7} Z",
-                    h * 0.84, w * 0.30, h * 0.76, w * 0.68, h * 0.90, w, h * 0.80, h));
-                art.Children.Add(new System.Windows.Shapes.Path { Data = waveGeo, Fill = Brush("#0C241E1A") });
-
-                // Top architectural vermilion accent bar
-                var topAccent = new Rectangle { Width = w, Height = 6, Fill = Brush("#B83326") };
-                Canvas.SetLeft(topAccent, 0);
-                Canvas.SetTop(topAccent, 0);
+                AddRadialGlow(art, w * 0.82, h * 0.18, w * 0.34, w * 0.34, "#C43B2E", 22);
+                var topAccent = new Rectangle { Width = w, Height = 5, Fill = Brush("#B33428") };
                 art.Children.Add(topAccent);
             }
             else if (th.Id == "vinyl")
             {
-                // Off-center vinyl LP grooves in right-upper backdrop
-                double discR = Math.Min(w, h) * 0.52;
-                double cx = w * 0.92;
-                double cy = h * 0.34;
-                AddRadialGlow(art, cx, cy, discR * 1.15, discR * 1.15, "#E89B4C", 36);
-                for (int i = 0; i < 11; i++)
-                {
-                    double r = discR * (0.36 + i * 0.062);
-                    var ring = new Ellipse
-                    {
-                        Width = r * 2, Height = r * 2,
-                        Stroke = Brush(i % 3 == 0 ? "#1CE8A85A" : "#12FFFFFF"),
-                        StrokeThickness = i == 10 ? 1.5 : 0.9
-                    };
-                    Canvas.SetLeft(ring, cx - r);
-                    Canvas.SetTop(ring, cy - r);
-                    art.Children.Add(ring);
-                }
-                var labelCore = new Ellipse { Width = discR * 0.56, Height = discR * 0.56, Fill = Brush("#26E89B4C"), Stroke = Brush("#44E89B4C"), StrokeThickness = 1 };
-                Canvas.SetLeft(labelCore, cx - discR * 0.28);
-                Canvas.SetTop(labelCore, cy - discR * 0.28);
-                art.Children.Add(labelCore);
-            }
-            else if (th.Id == "editorial")
-            {
-                AddRadialGlow(art, w * 0.84, h * 0.16, w * 0.58, w * 0.58, "#2C6B5B", 90);
-                AddRadialGlow(art, w * 0.14, h * 0.88, w * 0.52, w * 0.52, "#D4AE6A", 42);
-                // Crisp architectural frame inset
-                var inset = new Rectangle
-                {
-                    Width = w - 36, Height = h - 36,
-                    Stroke = Brush("#1EE8CA86"), StrokeThickness = 1.0
-                };
-                Canvas.SetLeft(inset, 18);
-                Canvas.SetTop(inset, 18);
-                art.Children.Add(inset);
+                AddRadialGlow(art, w * 0.88, h * 0.24, w * 0.56, w * 0.56, "#E89B4C", 38);
             }
 
-            // Always apply whisper-subtle analog tactile grain for print warmth
-            layer.Children.Add(new Rectangle { Fill = PaperGrainBrush(th.IsLight), Opacity = th.IsLight ? 0.85 : 0.72, IsHitTestVisible = false });
+            layer.Children.Add(new Rectangle { Fill = PaperGrainBrush(th.IsLight), Opacity = th.IsLight ? 0.85 : 0.70, IsHitTestVisible = false });
             return layer;
         }
 
@@ -327,292 +405,257 @@ namespace CountdownWidget
             catch { return null; }
         }
 
-        static FrameworkElement BuildFooter(string quote, bool showWatermark, ArtTheme th, bool serifQuote)
+        static Border BuildCalendarStamp(DateTime now, ArtTheme th)
         {
-            var foot = new DockPanel();
+            var box = new Border
+            {
+                Background = Brush(th.SurfaceStrong),
+                BorderBrush = Brush(th.Hairline),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(11, 6, 11, 6),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            var sp = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
+            sp.Children.Add(new TextBlock
+            {
+                Text = MonthEn(now.Month) + " · " + WeekdayShortZh(now),
+                FontFamily = MonoFont,
+                FontSize = 8.5,
+                Foreground = Brush(th.Muted),
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+            sp.Children.Add(new TextBlock
+            {
+                Text = now.Day.ToString("00"),
+                FontFamily = NumFont,
+                FontSize = 18,
+                FontWeight = FontWeights.Bold,
+                Foreground = Brush(th.Ink),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 1, 0, 0)
+            });
+            box.Child = sp;
+            return box;
+        }
+
+        static Border BuildSealBadge(string sealText, ArtTheme th)
+        {
+            var b = new Border
+            {
+                Background = Brush(th.Surface),
+                BorderBrush = Brush(HexA("70", th.Accent)),
+                BorderThickness = new Thickness(1.1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(10, 5, 10, 5),
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+            b.Child = new TextBlock { Text = sealText, FontFamily = SerifFont, FontSize = 11.5, FontWeight = FontWeights.SemiBold, Foreground = Brush(th.Accent) };
+            return b;
+        }
+
+        static FrameworkElement BuildFooter(string quote, bool showWatermark, ArtTheme th)
+        {
+            var wrap = new StackPanel();
+            wrap.Children.Add(new Border { Height = 1, Background = Brush(th.Hairline), Margin = new Thickness(0, 0, 0, 11) });
+            var row = new DockPanel();
             if (showWatermark)
             {
                 var wm = new TextBlock
                 {
-                    Text = "拾光",
-                    FontFamily = SerifFont,
-                    FontSize = 11,
-                    FontWeight = FontWeights.SemiBold,
+                    Text = "拾光倒计时",
+                    FontFamily = SansFont,
+                    FontSize = 10,
                     Foreground = Brush(th.Muted),
                     Opacity = 0.78,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(14, 0, 0, 0)
+                    Margin = new Thickness(12, 0, 0, 0)
                 };
                 DockPanel.SetDock(wm, Dock.Right);
-                foot.Children.Add(wm);
+                row.Children.Add(wm);
             }
-            var qt = new TextBlock
+            row.Children.Add(new TextBlock
             {
                 Text = "“" + quote + "”",
-                FontFamily = serifQuote ? SerifFont : SansFont,
+                FontFamily = SerifFont,
                 FontSize = 11.5,
                 Foreground = Brush(th.Muted),
-                Opacity = 0.92,
+                Opacity = 0.94,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 VerticalAlignment = VerticalAlignment.Center
-            };
-            foot.Children.Add(qt);
-            return foot;
+            });
+            wrap.Children.Add(row);
+            return wrap;
         }
 
-        // Standard curated poster layout (handles Aurora / Sunset / Xuan / Vinyl / Editorial across Single, List, 3:4, 1:1, 16:9, and 9:19.5 Lockscreen!)
-        static void BuildCuratedPoster(Grid root, int w, int h, List<ShareEntry> entries, CardOpts opts, ArtTheme th)
+        // Rich Hero + Bento Poster (Combines the beloved progress bars & year-progress Bento with curated lush themes!)
+        static void BuildRichBentoPoster(Grid root, int w, int h, List<ShareEntry> entries, CardOpts opts, ArtTheme th)
         {
             bool isSquare = opts.RatioIndex == 1;
             bool isWide = opts.RatioIndex == 2;
             bool isLock = opts.RatioIndex == 3;
             var now = DateTime.Now;
             string quote = string.IsNullOrWhiteSpace(opts.Quote) ? LiteraryQuotes[0] : opts.Quote.Trim();
-            bool useSerifTitle = th.Id == "xuan" || th.Id == "sunset" || th.Id == "editorial";
+            int yPassed, yRemain;
+            double yProg = YearProgress(now, out yPassed, out yRemain);
 
             root.Children.Add(BuildBackdropLayer(w, h, th));
 
-            // Balanced generous poster margins (lockscreen reserves top 29% cleanly for phone clock!)
-            Thickness pad = isLock ? new Thickness(42, 336, 42, 86)
-                : isWide ? new Thickness(48, 34, 48, 30)
-                : isSquare ? new Thickness(40, 34, 40, 30)
-                : new Thickness(44, 42, 44, 36);
+            Thickness pad = isLock ? new Thickness(34, 275, 34, 68)
+                : isWide ? new Thickness(38, 26, 38, 24)
+                : isSquare ? new Thickness(32, 26, 32, 22)
+                : new Thickness(34, 30, 34, 26);
 
-            var content = new Grid { Margin = pad };
-            content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 0: Top eyebrow
-            content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 1: Main artwork body
-            content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 2: Footer quote
-            root.Children.Add(content);
+            var dock = new DockPanel { Margin = pad };
+            root.Children.Add(dock);
 
-            // --- Row 0: Refined Minimal Header ---
-            var topBar = new DockPanel { Margin = new Thickness(0, 0, 0, isSquare ? 14 : 20) };
-            Grid.SetRow(topBar, 0);
-            content.Children.Add(topBar);
-
-            if (th.Id == "xuan")
-            {
-                // Vermilion traditional rectangular seal on right
-                var seal = new Border
-                {
-                    BorderBrush = Brush(th.Accent),
-                    BorderThickness = new Thickness(1.3),
-                    CornerRadius = new CornerRadius(3),
-                    Padding = new Thickness(7, 2.5, 7, 2.5),
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                seal.Child = new TextBlock { Text = th.BadgeText, FontFamily = SerifFont, FontSize = 11, FontWeight = FontWeights.Bold, Foreground = Brush(th.Accent) };
-                DockPanel.SetDock(seal, Dock.Right);
-                topBar.Children.Add(seal);
-            }
-            else
-            {
-                var dateStamp = new TextBlock
-                {
-                    Text = MonthEn(now.Month) + " " + now.Day.ToString("00") + " · " + WeekdayZh(now),
-                    FontFamily = MonoFont,
-                    FontSize = 10.5,
-                    Foreground = Brush(th.Muted),
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                DockPanel.SetDock(dateStamp, Dock.Right);
-                topBar.Children.Add(dateStamp);
-            }
-
-            string leftEyebrow = th.Id == "xuan"
-                ? (now.ToString("yyyy.MM.dd") + " · " + LunarHelper.SolarToFullLunar(now))
-                : (th.BadgeText + " · " + now.Year);
-            topBar.Children.Add(new TextBlock
-            {
-                Text = leftEyebrow,
-                FontFamily = th.Id == "xuan" ? SerifFont : MonoFont,
-                FontSize = 10.5,
-                Foreground = Brush(th.Accent),
-                Opacity = 0.92,
-                VerticalAlignment = VerticalAlignment.Center
-            });
-
-            // --- Row 2: Clean Footer ---
-            var footWrap = new StackPanel { Margin = new Thickness(0, isSquare ? 12 : 18, 0, 0) };
-            Grid.SetRow(footWrap, 2);
-            content.Children.Add(footWrap);
-            footWrap.Children.Add(new Border { Height = 1, Background = Brush(th.Hairline), Margin = new Thickness(0, 0, 0, 12) });
-            footWrap.Children.Add(BuildFooter(quote, opts.ShowWatermark, th, useSerifTitle));
-
-            // --- Row 1: Main Visual Composition ---
-            var body = new Grid { VerticalAlignment = VerticalAlignment.Center };
-            Grid.SetRow(body, 1);
-            content.Children.Add(body);
-
-            var ordered = OrderEntries(entries, now);
+            int maxDays;
+            var ordered = OrderEntries(entries, now, out maxDays);
             if (ordered.Count == 0) return;
 
-            if (!opts.IsList)
+            // --- Header ---
+            var headerWrap = new StackPanel { Margin = new Thickness(0, 0, 0, isSquare ? 12 : 18) };
+            DockPanel.SetDock(headerWrap, Dock.Top);
+            dock.Children.Add(headerWrap);
+
+            var header = new DockPanel();
+            headerWrap.Children.Add(header);
+
+            var rightBadges = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            rightBadges.Children.Add(BuildSealBadge(th.Seal, th));
+            rightBadges.Children.Add(BuildCalendarStamp(now, th));
+            DockPanel.SetDock(rightBadges, Dock.Right);
+            header.Children.Add(rightBadges);
+
+            var titleLeft = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            string eyebrow = opts.IsList
+                ? ("TIMELINE  ·  " + now.Year + " 第 " + IsoWeek(now) + " 周  ·  共 " + ordered.Count + " 个期待")
+                : ("DAILY FOCUS  ·  " + now.Year + " 第 " + IsoWeek(now) + " 周  ·  " + LunarHelper.SolarToFullLunar(now));
+            titleLeft.Children.Add(new TextBlock { Text = eyebrow, FontFamily = MonoFont, FontSize = 9.5, Foreground = Brush(th.Accent), Opacity = 0.9 });
+            titleLeft.Children.Add(new TextBlock
             {
-                // === SINGLE-DAY ART POSTER ===
-                var entry = entries[Math.Max(0, Math.Min(opts.EntryIndex, entries.Count - 1))];
-                bool isNum; string unit;
-                string dayStr = EntryDayNumber(entry, now, out isNum, out unit);
-                double prog = CalcProgress(entry, now);
+                Text = opts.IsList ? "值得期待的日子" : "距离期待之日",
+                FontFamily = SerifFont,
+                FontSize = isSquare ? 22 : 25,
+                FontWeight = FontWeights.Bold,
+                Foreground = Brush(th.Ink),
+                Margin = new Thickness(0, 4, 0, 0)
+            });
+            header.Children.Add(titleLeft);
+            headerWrap.Children.Add(new Border { Height = 1, Background = Brush(th.Hairline), Margin = new Thickness(0, 12, 0, 0) });
 
-                if (isWide)
-                {
-                    body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.15, GridUnitType.Star) });
-                    body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.0, GridUnitType.Star) });
+            // --- Footer ---
+            var foot = BuildFooter(quote, opts.ShowWatermark, th);
+            foot.Margin = new Thickness(0, isSquare ? 10 : 14, 0, 0);
+            DockPanel.SetDock(foot, Dock.Bottom);
+            dock.Children.Add(foot);
 
-                    var left = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 24, 0) };
-                    Grid.SetColumn(left, 0); body.Children.Add(left);
-
-                    left.Children.Add(new Border { Width = 34, Height = 3, Background = Brush(th.Accent), CornerRadius = new CornerRadius(1.5), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 14) });
-                    left.Children.Add(new TextBlock
-                    {
-                        Text = string.IsNullOrWhiteSpace(entry.Name) ? "期待之日" : entry.Name,
-                        FontFamily = useSerifTitle ? SerifFont : SansFont,
-                        FontSize = 38,
-                        FontWeight = FontWeights.Bold,
-                        Foreground = Brush(th.Ink),
-                        TextWrapping = TextWrapping.Wrap
-                    });
-                    if (opts.ShowDate)
-                    {
-                        string dt = entry.Date.ToString("yyyy.MM.dd") + " · " + WeekdayZh(entry.Date);
-                        if (!string.IsNullOrEmpty(entry.LunarLabel)) dt += " · " + entry.LunarLabel;
-                        left.Children.Add(new TextBlock { Text = dt, FontFamily = MonoFont, FontSize = 11.5, Foreground = Brush(th.Muted), Margin = new Thickness(0, 10, 0, 0) });
-                    }
-
-                    var right = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
-                    Grid.SetColumn(right, 1); body.Children.Add(right);
-                    right.Children.Add(new TextBlock
-                    {
-                        Text = dayStr,
-                        FontFamily = isNum ? NumFont : SerifFont,
-                        FontSize = isNum ? 132 : 46,
-                        FontWeight = FontWeights.Bold,
-                        Foreground = Brush(th.Id == "xuan" || th.Id == "vinyl" ? th.Accent : th.Ink),
-                        LineHeight = isNum ? 118 : 52,
-                        LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    });
-                    if (isNum)
-                    {
-                        right.Children.Add(new TextBlock
-                        {
-                            Text = entry.IsCountup ? "天" : "天后",
-                            FontFamily = useSerifTitle ? SerifFont : SansFont,
-                            FontSize = 18,
-                            FontWeight = FontWeights.SemiBold,
-                            Foreground = Brush(th.Accent),
-                            VerticalAlignment = VerticalAlignment.Bottom,
-                            Margin = new Thickness(8, 0, 0, 14)
-                        });
-                    }
-                }
-                else
-                {
-                    var stack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-                    body.Children.Add(stack);
-
-                    // Accent lead line + subtle tag
-                    var leadRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, isSquare ? 14 : 20) };
-                    leadRow.Children.Add(new Border { Width = 28, Height = 3, Background = Brush(th.Accent), CornerRadius = new CornerRadius(1.5), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) });
-                    leadRow.Children.Add(new TextBlock
-                    {
-                        Text = entry.IsCountup ? "已相伴走过" : (dayStr == "就是今天" ? "如约而至" : "距离期待之日"),
-                        FontFamily = useSerifTitle ? SerifFont : SansFont,
-                        FontSize = isLock ? 15 : 13,
-                        Foreground = Brush(th.Muted),
-                        VerticalAlignment = VerticalAlignment.Center
-                    });
-                    stack.Children.Add(leadRow);
-
-                    // Event Title
-                    stack.Children.Add(new TextBlock
-                    {
-                        Text = string.IsNullOrWhiteSpace(entry.Name) ? "期待之日" : entry.Name,
-                        FontFamily = useSerifTitle ? SerifFont : SansFont,
-                        FontSize = isLock ? 46 : (isSquare ? 34 : 42),
-                        FontWeight = FontWeights.Bold,
-                        Foreground = Brush(th.Ink),
-                        TextWrapping = TextWrapping.Wrap,
-                        Margin = new Thickness(0, 0, 0, isSquare ? 14 : 22)
-                    });
-
-                    // Giant Typographic Hero Numeral
-                    double numSize = isLock ? 168 : (isSquare ? 124 : 156);
-                    var heroRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, isSquare ? 20 : 30) };
-                    heroRow.Children.Add(new TextBlock
-                    {
-                        Text = dayStr,
-                        FontFamily = isNum ? NumFont : SerifFont,
-                        FontSize = isNum ? numSize : (isSquare ? 48 : 58),
-                        FontWeight = FontWeights.Bold,
-                        Foreground = Brush(th.Id == "xuan" || th.Id == "vinyl" ? th.Accent : th.Ink),
-                        LineHeight = isNum ? numSize * 0.88 : 62,
-                        LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
-                        VerticalAlignment = VerticalAlignment.Bottom
-                    });
-                    if (isNum)
-                    {
-                        var unitCol = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(12, 0, 0, isSquare ? 10 : 14) };
-                        unitCol.Children.Add(new TextBlock { Text = entry.IsCountup ? "DAYS" : "DAYS LEFT", FontFamily = MonoFont, FontSize = 10, Foreground = Brush(th.Muted) });
-                        unitCol.Children.Add(new TextBlock { Text = entry.IsCountup ? "天" : "天后", FontFamily = useSerifTitle ? SerifFont : SansFont, FontSize = isLock ? 24 : 20, FontWeight = FontWeights.SemiBold, Foreground = Brush(th.Accent), Margin = new Thickness(0, 2, 0, 0) });
-                        heroRow.Children.Add(unitCol);
-                    }
-                    stack.Children.Add(heroRow);
-
-                    // Razor-thin refined progress hairline (no clunky box!)
-                    var track = new Grid { Height = 3, Margin = new Thickness(0, 0, 0, 14) };
-                    track.Children.Add(new Border { Background = Brush(th.Hairline), CornerRadius = new CornerRadius(1.5) });
-                    var fillGrid = new Grid();
-                    fillGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(prog, GridUnitType.Star) });
-                    fillGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Max(0.01, 1.0 - prog), GridUnitType.Star) });
-                    var fillBar = new Border { Background = Brush(th.Accent), CornerRadius = new CornerRadius(1.5) };
-                    Grid.SetColumn(fillBar, 0);
-                    fillGrid.Children.Add(fillBar);
-                    track.Children.Add(fillGrid);
-                    stack.Children.Add(track);
-
-                    // Clean bottom meta strip (date + lunar + percentage — zero gray boxes!)
-                    if (opts.ShowDate)
-                    {
-                        var metaDock = new DockPanel();
-                        var pctTxt = new TextBlock { Text = ((int)Math.Round(prog * 100)) + "%", FontFamily = MonoFont, FontSize = isLock ? 13 : 11.5, FontWeight = FontWeights.SemiBold, Foreground = Brush(th.Accent) };
-                        DockPanel.SetDock(pctTxt, Dock.Right);
-                        metaDock.Children.Add(pctTxt);
-
-                        string dt = entry.Date.ToString("yyyy.MM.dd") + " · " + WeekdayZh(entry.Date);
-                        if (!string.IsNullOrEmpty(entry.LunarLabel)) dt += " · " + entry.LunarLabel;
-                        metaDock.Children.Add(new TextBlock { Text = dt, FontFamily = MonoFont, FontSize = isLock ? 13 : 11.5, Foreground = Brush(th.Muted) });
-                        stack.Children.Add(metaDock);
-                    }
-                }
-            }
-            else
+            if (opts.IsList)
             {
-                // === EDITORIAL LIST POSTER (ZERO SaaS boxes, ZERO progress bars!) ===
-                // Hero Focal Nearest Event on top + Ultra-clean typographic index below!
+                // === LIST MODE: Hero Card w/ Progress Bar + Upcoming Progress Cards + Bottom Year Progress & Span Bento ===
                 var hero = ordered[0];
                 var rest = ordered.Skip(1).Take(isSquare ? 2 : 3).ToList();
 
+                // Bottom Dual Bento Row (2026 年度进度 + 日程跨度)
+                if (!isWide)
+                {
+                    var bentoRow = new Grid { Margin = new Thickness(0, isSquare ? 10 : 16, 0, 0) };
+                    bentoRow.ColumnDefinitions.Add(new ColumnDefinition());
+                    bentoRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
+                    bentoRow.ColumnDefinitions.Add(new ColumnDefinition());
+                    DockPanel.SetDock(bentoRow, Dock.Bottom);
+                    dock.Children.Add(bentoRow);
+
+                    // Bento 1: Year Progress
+                    var b1 = new Border { Background = Brush(th.Surface), BorderBrush = Brush(th.Hairline), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Padding = new Thickness(14, 11, 14, 11) };
+                    var b1Stack = new StackPanel(); b1.Child = b1Stack;
+                    var b1Top = new DockPanel { Margin = new Thickness(0, 0, 0, 7) };
+                    var b1Pct = new TextBlock { Text = (yProg * 100).ToString("0.0", CultureInfo.InvariantCulture) + "%", FontFamily = NumFont, FontSize = 16, FontWeight = FontWeights.Bold, Foreground = Brush(th.Ink) };
+                    DockPanel.SetDock(b1Pct, Dock.Right); b1Top.Children.Add(b1Pct);
+                    b1Top.Children.Add(new TextBlock { Text = now.Year + " 年度进度", FontSize = 10.5, Foreground = Brush(th.Muted), VerticalAlignment = VerticalAlignment.Center });
+                    b1Stack.Children.Add(b1Top);
+                    b1Stack.Children.Add(BuildProgressTrack(yProg, 4.5, th.Accent, th.Track));
+                    b1Stack.Children.Add(new TextBlock { Text = "已过 " + yPassed + " 天 · 余 " + yRemain + " 天", FontSize = 9.5, Foreground = Brush(th.Muted), Margin = new Thickness(0, 6, 0, 0) });
+                    Grid.SetColumn(b1, 0); bentoRow.Children.Add(b1);
+
+                    // Bento 2: Schedule Span
+                    var b2 = new Border { Background = Brush(th.Surface), BorderBrush = Brush(th.Hairline), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Padding = new Thickness(14, 11, 14, 11) };
+                    var b2Stack = new StackPanel { VerticalAlignment = VerticalAlignment.Center }; b2.Child = b2Stack;
+                    var lastShown = rest.Count > 0 ? rest[rest.Count - 1] : hero;
+                    int minD = Math.Max(0, (hero.Date.Date - now.Date).Days);
+                    int maxD = Math.Max(minD, (lastShown.Date.Date - now.Date).Days);
+                    b2Stack.Children.Add(new TextBlock { Text = "日程跨度", FontSize = 10.5, Foreground = Brush(th.Muted) });
+                    b2Stack.Children.Add(new TextBlock
+                    {
+                        Text = minD == maxD ? (minD + " 天") : (minD + " — " + maxD + " 天"),
+                        FontFamily = NumFont,
+                        FontSize = 17,
+                        FontWeight = FontWeights.Bold,
+                        Foreground = Brush(th.Ink),
+                        Margin = new Thickness(0, 3, 0, 2)
+                    });
+                    b2Stack.Children.Add(new TextBlock
+                    {
+                        Text = hero.Date.ToString("MM.dd") + " 至 " + lastShown.Date.ToString("MM.dd"),
+                        FontFamily = MonoFont,
+                        FontSize = 10,
+                        Foreground = Brush(th.Accent)
+                    });
+                    Grid.SetColumn(b2, 2); bentoRow.Children.Add(b2);
+                }
+
+                // Middle Area: Hero Card + Upcoming Cards
+                var midStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+                dock.Children.Add(midStack);
+
+                // --- Hero Focus Card ---
+                var heroCard = new Border
+                {
+                    Background = Brush(th.SurfaceStrong),
+                    BorderBrush = Brush(th.Hairline),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(14),
+                    ClipToBounds = true,
+                    Margin = new Thickness(0, 0, 0, isSquare ? 10 : 14)
+                };
+                var heroGrid = new Grid();
+                heroCard.Child = heroGrid;
+
+                // Subtle thematic emblem behind Hero number (like the pine tree!)
+                var emblem = BuildHeroEmblem(th.Id, hero.Name, th.Accent, isLock ? 115 : 102);
+                emblem.HorizontalAlignment = HorizontalAlignment.Right;
+                emblem.VerticalAlignment = VerticalAlignment.Bottom;
+                emblem.Margin = new Thickness(0, 0, 8, -8);
+                heroGrid.Children.Add(emblem);
+
+                // Warm accent vertical strip on left
+                heroGrid.Children.Add(new Border
+                {
+                    Width = 4,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    Background = Brush(th.Accent),
+                    CornerRadius = new CornerRadius(2),
+                    Margin = new Thickness(0, 14, 0, 14)
+                });
+
+                var heroPad = new StackPanel { Margin = new Thickness(18, isSquare ? 12 : 15, 18, isSquare ? 12 : 15) };
+                heroGrid.Children.Add(heroPad);
+
+                var heroTop = new DockPanel { Margin = new Thickness(0, 0, 0, 11) };
+                heroPad.Children.Add(heroTop);
+
                 bool hNum; string hUnit;
                 string hStr = EntryDayNumber(hero, now, out hNum, out hUnit);
-
-                var stack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-                body.Children.Add(stack);
-
-                // Top Hero Focus Block
-                var heroDock = new DockPanel { Margin = new Thickness(0, 0, 0, isSquare ? 18 : 28) };
-                stack.Children.Add(heroDock);
-
-                var heroRight = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(16, 0, 0, 0) };
-                double hFontSize = isLock ? 114 : (isSquare ? 78 : 96);
+                var heroRight = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
                 heroRight.Children.Add(new TextBlock
                 {
                     Text = hStr,
                     FontFamily = hNum ? NumFont : SerifFont,
-                    FontSize = hNum ? hFontSize : 36,
+                    FontSize = hNum ? (isLock ? 62 : (isSquare ? 46 : 54)) : 28,
                     FontWeight = FontWeights.Bold,
-                    Foreground = Brush(th.Id == "xuan" || th.Id == "vinyl" ? th.Accent : th.Ink),
-                    LineHeight = hNum ? hFontSize * 0.88 : 40,
+                    Foreground = Brush(th.Ink),
+                    LineHeight = hNum ? (isLock ? 56 : 48) : 32,
                     LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
                     VerticalAlignment = VerticalAlignment.Bottom
                 });
@@ -621,31 +664,29 @@ namespace CountdownWidget
                     heroRight.Children.Add(new TextBlock
                     {
                         Text = "天",
-                        FontFamily = useSerifTitle ? SerifFont : SansFont,
-                        FontSize = isLock ? 20 : 16,
+                        FontSize = 14,
                         FontWeight = FontWeights.SemiBold,
                         Foreground = Brush(th.Accent),
                         VerticalAlignment = VerticalAlignment.Bottom,
-                        Margin = new Thickness(5, 0, 0, 10)
+                        Margin = new Thickness(4, 0, 0, 6)
                     });
                 }
                 DockPanel.SetDock(heroRight, Dock.Right);
-                heroDock.Children.Add(heroRight);
+                heroTop.Children.Add(heroRight);
 
-                var heroLeft = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom };
-                heroLeft.Children.Add(new TextBlock
-                {
-                    Text = "NEXT · 最近期待",
-                    FontFamily = MonoFont,
-                    FontSize = isLock ? 11.5 : 10,
-                    Foreground = Brush(th.Accent),
-                    Margin = new Thickness(0, 0, 0, 8)
-                });
+                var heroLeft = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+                var tagRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 7) };
+                tagRow.Children.Add(BuildPill("NEXT · 最近期待", th.PillBg, th.PillFg, 9));
+                var relPill = BuildPill(RelativeSpanTag(hero, now), th.Surface, th.Muted, 9);
+                relPill.Margin = new Thickness(6, 0, 0, 0);
+                tagRow.Children.Add(relPill);
+                heroLeft.Children.Add(tagRow);
+
                 heroLeft.Children.Add(new TextBlock
                 {
                     Text = hero.Name,
-                    FontFamily = useSerifTitle ? SerifFont : SansFont,
-                    FontSize = isLock ? 42 : (isSquare ? 30 : 36),
+                    FontFamily = SansFont,
+                    FontSize = isLock ? 24 : (isSquare ? 19 : 22),
                     FontWeight = FontWeights.Bold,
                     Foreground = Brush(th.Ink),
                     TextTrimming = TextTrimming.CharacterEllipsis
@@ -654,104 +695,256 @@ namespace CountdownWidget
                 {
                     heroLeft.Children.Add(new TextBlock
                     {
-                        Text = hero.Date.ToString("yyyy.MM.dd") + " · " + WeekdayZh(hero.Date),
+                        Text = hero.Date.ToString("yyyy.MM.dd") + " · " + WeekdayFullZh(hero.Date),
                         FontFamily = MonoFont,
-                        FontSize = isLock ? 13 : 11.5,
+                        FontSize = 10,
                         Foreground = Brush(th.Muted),
-                        Margin = new Thickness(0, 6, 0, 4)
+                        Margin = new Thickness(0, 3, 0, 0)
                     });
                 }
-                heroDock.Children.Add(heroLeft);
+                heroTop.Children.Add(heroLeft);
 
-                // Bold architectural accent rule separating Hero and Upcoming Index
-                var rule = new Grid { Height = 2, Margin = new Thickness(0, 0, 0, isSquare ? 8 : 14) };
-                rule.Children.Add(new Border { Background = Brush(th.Hairline) });
-                rule.Children.Add(new Border { Width = 56, Background = Brush(th.Accent), HorizontalAlignment = HorizontalAlignment.Left });
-                stack.Children.Add(rule);
+                // Intuitive luminous progress bar on Hero Card!
+                heroPad.Children.Add(BuildProgressTrack(ListProgressRatio(hero, now, maxDays), 4.5, th.Accent, th.Track));
+                midStack.Children.Add(heroCard);
 
-                // Clean Frameless Editorial Index Rows
+                // Sub-section header
+                if (rest.Count > 0)
+                {
+                    var subHead = new DockPanel { Margin = new Thickness(3, 0, 3, 8) };
+                    var shRight = new TextBlock { Text = "按时间排序", FontSize = 9.5, Foreground = Brush(th.Accent), Opacity = 0.85 };
+                    DockPanel.SetDock(shRight, Dock.Right); subHead.Children.Add(shRight);
+                    subHead.Children.Add(new TextBlock { Text = "后续期待日程", FontSize = 10, FontWeight = FontWeights.SemiBold, Foreground = Brush(th.Muted) });
+                    midStack.Children.Add(subHead);
+                }
+
+                // Upcoming Bento Cards with stepped comparative progress bars!
                 for (int i = 0; i < rest.Count; i++)
                 {
                     var it = rest[i];
                     bool rNum; string rUnit;
                     string rStr = EntryDayNumber(it, now, out rNum, out rUnit);
 
-                    var rowBorder = new Border
+                    var c = new Border
                     {
+                        Background = Brush(th.Surface),
                         BorderBrush = Brush(th.Hairline),
-                        BorderThickness = new Thickness(0, 0, 0, i < rest.Count - 1 ? 1 : 0),
-                        Padding = new Thickness(0, isLock ? 20 : (isSquare ? 13 : 17), 0, isLock ? 20 : (isSquare ? 13 : 17))
+                        BorderThickness = new Thickness(1),
+                        CornerRadius = new CornerRadius(12),
+                        Padding = new Thickness(14, isLock ? 14 : (isSquare ? 9 : 11), 14, isLock ? 14 : (isSquare ? 9 : 11)),
+                        Margin = new Thickness(0, 0, 0, i < rest.Count - 1 ? (isLock ? 12 : 9) : 0)
                     };
-                    var row = new DockPanel();
-                    rowBorder.Child = row;
+                    var cs = new StackPanel(); c.Child = cs;
 
-                    // Right aligned crisp days
-                    var rightVal = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-                    rightVal.Children.Add(new TextBlock
+                    var rTop = new DockPanel { Margin = new Thickness(0, 0, 0, 8) };
+                    cs.Children.Add(rTop);
+
+                    var rVal = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+                    rVal.Children.Add(new TextBlock
                     {
                         Text = rStr,
                         FontFamily = rNum ? NumFont : SerifFont,
-                        FontSize = isLock ? 34 : (isSquare ? 24 : 28),
+                        FontSize = rNum ? (isLock ? 30 : 25) : 16,
                         FontWeight = FontWeights.Bold,
                         Foreground = Brush(th.Ink),
                         VerticalAlignment = VerticalAlignment.Bottom
                     });
                     if (rNum)
                     {
-                        rightVal.Children.Add(new TextBlock
+                        rVal.Children.Add(new TextBlock
                         {
                             Text = "天",
-                            FontFamily = SansFont,
-                            FontSize = isLock ? 13 : 11.5,
-                            Foreground = Brush(th.Muted),
+                            FontSize = 11,
+                            Foreground = Brush(th.Accent),
                             VerticalAlignment = VerticalAlignment.Bottom,
-                            Margin = new Thickness(4, 0, 0, 4)
+                            Margin = new Thickness(3.5, 0, 0, 3)
                         });
                     }
-                    DockPanel.SetDock(rightVal, Dock.Right);
-                    row.Children.Add(rightVal);
+                    DockPanel.SetDock(rVal, Dock.Right);
+                    rTop.Children.Add(rVal);
 
-                    // Left index + title + date
-                    var leftRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-                    leftRow.Children.Add(new TextBlock
+                    var lGrid = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+                    lGrid.Children.Add(new TextBlock
                     {
                         Text = (i + 2).ToString("00"),
                         FontFamily = MonoFont,
-                        FontSize = isLock ? 13.5 : 11.5,
-                        Foreground = Brush(th.Accent),
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Width = isLock ? 32 : 26
-                    });
-                    var nameStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-                    nameStack.Children.Add(new TextBlock
-                    {
-                        Text = it.Name,
-                        FontFamily = useSerifTitle ? SerifFont : SansFont,
-                        FontSize = isLock ? 21 : (isSquare ? 16 : 18),
+                        FontSize = 10,
                         FontWeight = FontWeights.SemiBold,
-                        Foreground = Brush(th.Ink),
-                        TextTrimming = TextTrimming.CharacterEllipsis
+                        Foreground = Brush(th.Accent),
+                        Width = 22,
+                        VerticalAlignment = VerticalAlignment.Top,
+                        Margin = new Thickness(0, 4, 0, 0)
                     });
+                    var txtSp = new StackPanel();
+                    var nameLine = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+                    nameLine.Children.Add(new TextBlock { Text = it.Name, FontSize = isLock ? 17 : 15, FontWeight = FontWeights.Bold, Foreground = Brush(th.Ink) });
+                    var rp = BuildPill(RelativeSpanTag(it, now), th.SurfaceStrong, th.Muted, 8.5);
+                    rp.Margin = new Thickness(8, 0, 0, 0);
+                    nameLine.Children.Add(rp);
+                    txtSp.Children.Add(nameLine);
+
                     if (opts.ShowDate)
                     {
-                        nameStack.Children.Add(new TextBlock
+                        txtSp.Children.Add(new TextBlock
                         {
-                            Text = it.Date.ToString("yyyy.MM.dd") + " · " + WeekdayZh(it.Date),
+                            Text = it.Date.ToString("yyyy.MM.dd") + " · " + WeekdayFullZh(it.Date),
                             FontFamily = MonoFont,
-                            FontSize = isLock ? 11.5 : 10,
+                            FontSize = 9.5,
                             Foreground = Brush(th.Muted),
-                            Margin = new Thickness(0, 2, 0, 0)
+                            Margin = new Thickness(0, 3, 0, 0)
                         });
                     }
-                    leftRow.Children.Add(nameStack);
-                    row.Children.Add(leftRow);
+                    lGrid.Children.Add(txtSp);
+                    rTop.Children.Add(lGrid);
 
-                    stack.Children.Add(rowBorder);
+                    var pb = BuildProgressTrack(ListProgressRatio(it, now, maxDays), 3.5, th.Accent, th.Track);
+                    pb.Margin = new Thickness(22, 0, 0, 0);
+                    cs.Children.Add(pb);
+
+                    midStack.Children.Add(c);
                 }
+            }
+            else
+            {
+                // === SINGLE-DAY FOCUS MODE: Elevated Hero Card + Real Cycle Progress + Triple Bento Metrics ===
+                var entry = entries[Math.Max(0, Math.Min(opts.EntryIndex, entries.Count - 1))];
+                bool isNum; string unit;
+                string dayStr = EntryDayNumber(entry, now, out isNum, out unit);
+                DateTime cycleStart;
+                double realProg = RealSingleProgress(entry, now, out cycleStart);
+
+                // Bottom Triple Bento Stats
+                if (!isWide)
+                {
+                    var bento3 = new Grid { Margin = new Thickness(0, isSquare ? 10 : 18, 0, 0) };
+                    bento3.ColumnDefinitions.Add(new ColumnDefinition());
+                    bento3.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+                    bento3.ColumnDefinitions.Add(new ColumnDefinition());
+                    bento3.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+                    bento3.ColumnDefinitions.Add(new ColumnDefinition());
+                    DockPanel.SetDock(bento3, Dock.Bottom);
+                    dock.Children.Add(bento3);
+
+                    Func<string, string, string, double?, Border> makeTile = (k, v, s, progOpt) =>
+                    {
+                        var tile = new Border { Background = Brush(th.Surface), BorderBrush = Brush(th.Hairline), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Padding = new Thickness(12, 10, 12, 10) };
+                        var sp = new StackPanel(); tile.Child = sp;
+                        sp.Children.Add(new TextBlock { Text = k, FontSize = 9.5, Foreground = Brush(th.Muted) });
+                        sp.Children.Add(new TextBlock { Text = v, FontFamily = NumFont, FontSize = 15, FontWeight = FontWeights.Bold, Foreground = Brush(th.Ink), Margin = new Thickness(0, 3, 0, 3), TextTrimming = TextTrimming.CharacterEllipsis });
+                        if (progOpt.HasValue)
+                        {
+                            var pb = BuildProgressTrack(progOpt.Value, 3.2, th.Accent, th.Track);
+                            pb.Margin = new Thickness(0, 1, 0, 4);
+                            sp.Children.Add(pb);
+                        }
+                        sp.Children.Add(new TextBlock { Text = s, FontSize = 9.5, Foreground = Brush(th.Accent), TextTrimming = TextTrimming.CharacterEllipsis });
+                        return tile;
+                    };
+
+                    int hoursApprox = Math.Max(0, (int)Math.Round(Math.Abs((entry.Date - now).TotalHours)));
+                    var t1 = makeTile("目标日期", entry.Date.ToString("yyyy.MM.dd"), !string.IsNullOrEmpty(entry.LunarLabel) ? entry.LunarLabel : WeekdayFullZh(entry.Date), null);
+                    var t2 = makeTile("距离换算", CompactWeekText(entry, now), "约 " + hoursApprox.ToString("N0", CultureInfo.InvariantCulture) + " 小时", null);
+                    var t3 = makeTile(now.Year + " 年度进度", (yProg * 100).ToString("0.0", CultureInfo.InvariantCulture) + "%", "余 " + yRemain + " 天跨年", yProg);
+                    Grid.SetColumn(t1, 0); bento3.Children.Add(t1);
+                    Grid.SetColumn(t2, 2); bento3.Children.Add(t2);
+                    Grid.SetColumn(t3, 4); bento3.Children.Add(t3);
+                }
+
+                // Center Hero Card
+                var heroCard = new Border
+                {
+                    Background = Brush(th.SurfaceStrong),
+                    BorderBrush = Brush(th.Hairline),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(16),
+                    ClipToBounds = true,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                dock.Children.Add(heroCard);
+
+                var hg = new Grid();
+                heroCard.Child = hg;
+
+                var emblem = BuildHeroEmblem(th.Id, entry.Name, th.Accent, isSquare ? 135 : 165);
+                emblem.HorizontalAlignment = HorizontalAlignment.Right;
+                emblem.VerticalAlignment = VerticalAlignment.Center;
+                emblem.Margin = new Thickness(0, 0, 14, 0);
+                hg.Children.Add(emblem);
+
+                hg.Children.Add(new Border
+                {
+                    Width = 4.5,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    Background = Brush(th.Accent),
+                    CornerRadius = new CornerRadius(2),
+                    Margin = new Thickness(0, 22, 0, 22)
+                });
+
+                var hp = new StackPanel { Margin = new Thickness(26, isSquare ? 20 : 28, 26, isSquare ? 20 : 26) };
+                hg.Children.Add(hp);
+
+                var pillRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 12) };
+                pillRow.Children.Add(BuildPill((entry.IsCountup ? "ANNIVERSARY · " : "NEXT MILESTONE · ") + RelativeSpanTag(entry, now), th.PillBg, th.PillFg, 9.5));
+                hp.Children.Add(pillRow);
+
+                hp.Children.Add(new TextBlock
+                {
+                    Text = string.IsNullOrWhiteSpace(entry.Name) ? "期待之日" : entry.Name,
+                    FontFamily = SerifFont,
+                    FontSize = isSquare ? 30 : 38,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = Brush(th.Ink),
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 0, 0, 8)
+                });
+
+                var numRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, isSquare ? 16 : 24) };
+                double bigSz = isLock ? 128 : (isSquare ? 94 : 118);
+                numRow.Children.Add(new TextBlock
+                {
+                    Text = dayStr,
+                    FontFamily = isNum ? NumFont : SerifFont,
+                    FontSize = isNum ? bigSz : 48,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = Brush(th.Ink),
+                    LineHeight = isNum ? bigSz * 0.90 : 52,
+                    LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
+                    VerticalAlignment = VerticalAlignment.Bottom
+                });
+                if (isNum)
+                {
+                    var uCol = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(10, 0, 0, 10) };
+                    uCol.Children.Add(new TextBlock { Text = entry.IsCountup ? "DAYS" : "DAYS LEFT", FontFamily = MonoFont, FontSize = 9.5, Foreground = Brush(th.Muted) });
+                    uCol.Children.Add(new TextBlock { Text = entry.IsCountup ? "天" : "天后", FontFamily = SerifFont, FontSize = 18, FontWeight = FontWeights.Bold, Foreground = Brush(th.Accent) });
+                    numRow.Children.Add(uCol);
+                }
+                hp.Children.Add(numRow);
+
+                // Real Progress Bar with Start/Target dates & Percentage!
+                var pHead = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
+                var pRight = new TextBlock
+                {
+                    Text = entry.Date.ToString("yyyy.MM.dd") + "  ·  " + ((int)Math.Round(realProg * 100)) + "%",
+                    FontFamily = MonoFont,
+                    FontSize = 10,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = Brush(th.Accent)
+                };
+                DockPanel.SetDock(pRight, Dock.Right);
+                pHead.Children.Add(pRight);
+                pHead.Children.Add(new TextBlock
+                {
+                    Text = (entry.IsCountup ? "START " : "FROM ") + cycleStart.ToString("yyyy.MM.dd"),
+                    FontFamily = MonoFont,
+                    FontSize = 10,
+                    Foreground = Brush(th.Muted)
+                });
+                hp.Children.Add(pHead);
+                hp.Children.Add(BuildProgressTrack(realProg, 5.5, th.Accent, th.Track));
             }
         }
 
-        // Curated Theme 5: Authentic Polaroid Photo Memory Card
+        // Theme 5: Authentic Polaroid Photo Card (with progress bar + year progress storytelling!)
         static void BuildPolaroidPoster(Grid root, int w, int h, List<ShareEntry> entries, CardOpts opts, ArtTheme th)
         {
             bool isSquare = opts.RatioIndex == 1;
@@ -759,16 +952,20 @@ namespace CountdownWidget
             bool isLock = opts.RatioIndex == 3;
             var now = DateTime.Now;
             string quote = string.IsNullOrWhiteSpace(opts.Quote) ? LiteraryQuotes[0] : opts.Quote.Trim();
+            int yPassed, yRemain;
+            double yProg = YearProgress(now, out yPassed, out yRemain);
 
-            var ordered = OrderEntries(entries, now);
+            int maxDays;
+            var ordered = OrderEntries(entries, now, out maxDays);
             var entry = (!opts.IsList && entries.Count > 0)
                 ? entries[Math.Max(0, Math.Min(opts.EntryIndex, entries.Count - 1))]
                 : (ordered.Count > 0 ? ordered[0] : new ShareEntry { Name = "期待之日", Date = now.AddDays(30) });
 
             bool isNum; string unit;
             string dayStr = EntryDayNumber(entry, now, out isNum, out unit);
+            DateTime cStart;
+            double prog = opts.IsList ? ListProgressRatio(entry, now, maxDays) : RealSingleProgress(entry, now, out cStart);
 
-            // Warm cream archival Polaroid stock
             var stockBg = new LinearGradientBrush(C_(th.BgTop), C_(th.BgBot), new Point(0, 0), new Point(1, 1));
             stockBg.Freeze();
             root.Background = stockBg;
@@ -781,18 +978,13 @@ namespace CountdownWidget
                 var frame = new Grid { ClipToBounds = true };
                 if (photoBmp != null)
                 {
-                    frame.Children.Add(new Rectangle
-                    {
-                        Fill = new ImageBrush(photoBmp) { Stretch = Stretch.UniformToFill, AlignmentX = AlignmentX.Center, AlignmentY = AlignmentY.Center }
-                    });
-                    // Subtle film bottom vignette so overlaid text is always crisp
+                    frame.Children.Add(new Rectangle { Fill = new ImageBrush(photoBmp) { Stretch = Stretch.UniformToFill, AlignmentX = AlignmentX.Center, AlignmentY = AlignmentY.Center } });
                     var vig = new LinearGradientBrush(Color.FromArgb(15, 0, 0, 0), Color.FromArgb(170, 12, 10, 10), new Point(0, 0.2), new Point(0, 1));
                     vig.Freeze();
                     frame.Children.Add(new Rectangle { Fill = vig });
                 }
                 else
                 {
-                    // Cinematic dusk mountain-horizon default art (gorgeous even before dragging a photo!)
                     var sky = new LinearGradientBrush { StartPoint = new Point(0.1, 0), EndPoint = new Point(0.9, 1) };
                     sky.GradientStops.Add(new GradientStop(C_("#1D2B44"), 0.0));
                     sky.GradientStops.Add(new GradientStop(C_("#4B5074"), 0.45));
@@ -800,13 +992,11 @@ namespace CountdownWidget
                     sky.GradientStops.Add(new GradientStop(C_("#E9B27B"), 1.0));
                     sky.Freeze();
                     frame.Background = sky;
-
                     var skyArt = new Canvas { Width = 600, Height = 500, IsHitTestVisible = false };
                     AddRadialGlow(skyArt, 440, 140, 210, 210, "#FFE0A8", 115);
                     skyArt.Children.Add(new System.Windows.Shapes.Path { Data = Geometry.Parse("M 0,430 Q 160,330 320,395 T 600,360 L 600,500 L 0,500 Z"), Fill = Brush("#55141A29") });
                     skyArt.Children.Add(new System.Windows.Shapes.Path { Data = Geometry.Parse("M 0,460 Q 220,385 410,435 T 600,415 L 600,500 L 0,500 Z"), Fill = Brush("#880D111C") });
                     frame.Children.Add(new Viewbox { Stretch = Stretch.UniformToFill, Child = skyArt });
-
                     var vig = new LinearGradientBrush(Color.FromArgb(0, 0, 0, 0), Color.FromArgb(135, 10, 12, 20), new Point(0, 0.35), new Point(0, 1));
                     vig.Freeze();
                     frame.Children.Add(new Rectangle { Fill = vig });
@@ -814,134 +1004,84 @@ namespace CountdownWidget
 
                 frame.Children.Add(new Rectangle { Fill = PaperGrainBrush(false), Opacity = 0.8, IsHitTestVisible = false });
 
-                // Classic Contax orange-amber film date stamp in bottom-right
+                // Top-left floating pill
+                var topBadge = new Border
+                {
+                    Background = Brush("#66000000"), CornerRadius = new CornerRadius(7),
+                    Padding = new Thickness(9, 4, 9, 4), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(14, 14, 0, 0)
+                };
+                topBadge.Child = new TextBlock { Text = now.Year + " 年度已过 " + (yProg * 100).ToString("0.0", CultureInfo.InvariantCulture) + "%", FontFamily = MonoFont, FontSize = 9.5, Foreground = Brushes.White };
+                frame.Children.Add(topBadge);
+
+                // Film date stamp bottom-right
                 frame.Children.Add(new TextBlock
                 {
-                    Text = "'" + now.ToString("yy MM dd"),
-                    FontFamily = MonoFont,
-                    FontSize = 11.5,
-                    FontWeight = FontWeights.Bold,
-                    Foreground = Brush("#EEF2B26B"),
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    Margin = new Thickness(0, 0, 16, 14)
+                    Text = "'" + now.ToString("yy MM dd"), FontFamily = MonoFont, FontSize = 11.5, FontWeight = FontWeights.Bold,
+                    Foreground = Brush("#EEF2B26B"), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 16, 14)
                 });
 
-                // Hero big number on bottom-left of photo
-                var hero = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    Margin = new Thickness(20, 0, 0, 14)
-                };
-                double pNumSize = isSquare ? 68 : 92;
-                hero.Children.Add(new TextBlock
-                {
-                    Text = dayStr,
-                    FontFamily = isNum ? NumFont : SerifFont,
-                    FontSize = isNum ? pNumSize : 36,
-                    FontWeight = FontWeights.Bold,
-                    Foreground = Brushes.White,
-                    LineHeight = isNum ? pNumSize * 0.88 : 40,
-                    LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
-                    VerticalAlignment = VerticalAlignment.Bottom
-                });
-                if (isNum)
-                {
-                    hero.Children.Add(new TextBlock
-                    {
-                        Text = entry.IsCountup ? "天" : "天后",
-                        FontFamily = SerifFont,
-                        FontSize = 17,
-                        FontWeight = FontWeights.SemiBold,
-                        Foreground = Brush("#EBFFFFFF"),
-                        VerticalAlignment = VerticalAlignment.Bottom,
-                        Margin = new Thickness(7, 0, 0, 9)
-                    });
-                }
+                var hero = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(18, 0, 0, 12) };
+                double pNumSize = isSquare ? 64 : 84;
+                hero.Children.Add(new TextBlock { Text = dayStr, FontFamily = isNum ? NumFont : SerifFont, FontSize = isNum ? pNumSize : 34, FontWeight = FontWeights.Bold, Foreground = Brushes.White, LineHeight = isNum ? pNumSize * 0.88 : 38, LineStackingStrategy = LineStackingStrategy.BlockLineHeight, VerticalAlignment = VerticalAlignment.Bottom });
+                if (isNum) hero.Children.Add(new TextBlock { Text = entry.IsCountup ? "天" : "天后", FontFamily = SerifFont, FontSize = 16, FontWeight = FontWeights.SemiBold, Foreground = Brush("#EBFFFFFF"), VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(6, 0, 0, 8) });
                 frame.Children.Add(hero);
                 return frame;
             };
 
             if (isWide)
             {
-                var pad = new Grid { Margin = new Thickness(28) };
+                var pad = new Grid { Margin = new Thickness(26) };
                 pad.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.25, GridUnitType.Star) });
-                pad.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
+                pad.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
                 pad.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.95, GridUnitType.Star) });
                 root.Children.Add(pad);
-
-                var photoBox = new Border { CornerRadius = new CornerRadius(4), ClipToBounds = true, Child = buildPhotoWell() };
+                var photoBox = new Border { CornerRadius = new CornerRadius(5), ClipToBounds = true, Child = buildPhotoWell() };
                 Grid.SetColumn(photoBox, 0); pad.Children.Add(photoBox);
-
-                var right = new DockPanel { Margin = new Thickness(0, 10, 4, 8) };
+                var right = new DockPanel { Margin = new Thickness(0, 6, 4, 4) };
                 Grid.SetColumn(right, 2); pad.Children.Add(right);
-
-                var foot = BuildFooter(quote, opts.ShowWatermark, th, true);
+                var foot = BuildFooter(quote, opts.ShowWatermark, th);
                 DockPanel.SetDock(foot, Dock.Bottom); right.Children.Add(foot);
-
                 var mid = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
                 right.Children.Add(mid);
-                mid.Children.Add(new TextBlock { Text = entry.Name, FontFamily = SerifFont, FontSize = 32, FontWeight = FontWeights.Bold, Foreground = Brush(th.Ink), TextWrapping = TextWrapping.Wrap });
-                if (opts.ShowDate)
-                {
-                    mid.Children.Add(new TextBlock { Text = entry.Date.ToString("yyyy.MM.dd") + " · " + WeekdayZh(entry.Date), FontFamily = MonoFont, FontSize = 11.5, Foreground = Brush(th.Muted), Margin = new Thickness(0, 10, 0, 0) });
-                }
+                mid.Children.Add(new TextBlock { Text = entry.Name, FontFamily = SerifFont, FontSize = 30, FontWeight = FontWeights.Bold, Foreground = Brush(th.Ink), TextWrapping = TextWrapping.Wrap });
+                mid.Children.Add(new TextBlock { Text = entry.Date.ToString("yyyy.MM.dd") + " · " + WeekdayFullZh(entry.Date), FontFamily = MonoFont, FontSize = 10.5, Foreground = Brush(th.Muted), Margin = new Thickness(0, 6, 0, 12) });
+                mid.Children.Add(BuildProgressTrack(prog, 4, th.Accent, th.Track));
             }
             else
             {
-                var pad = new Grid { Margin = isLock ? new Thickness(28, 300, 28, 64) : new Thickness(26, 26, 26, 24) };
-                pad.RowDefinitions.Add(new RowDefinition { Height = new GridLength(isSquare ? 1.65 : 2.1, GridUnitType.Star) });
+                var pad = new Grid { Margin = isLock ? new Thickness(26, 280, 26, 56) : new Thickness(24, 24, 24, 22) };
+                pad.RowDefinitions.Add(new RowDefinition { Height = new GridLength(isSquare ? 1.55 : 1.78, GridUnitType.Star) });
                 pad.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1.0, GridUnitType.Star) });
                 root.Children.Add(pad);
 
-                var photoBox = new Border { CornerRadius = new CornerRadius(4), ClipToBounds = true, Child = buildPhotoWell() };
+                var photoBox = new Border { CornerRadius = new CornerRadius(5), ClipToBounds = true, Child = buildPhotoWell() };
                 Grid.SetRow(photoBox, 0); pad.Children.Add(photoBox);
 
-                var chin = new DockPanel { Margin = new Thickness(4, 20, 4, 2) };
+                var chin = new DockPanel { Margin = new Thickness(2, 16, 2, 0) };
                 Grid.SetRow(chin, 1); pad.Children.Add(chin);
 
-                var foot = BuildFooter(quote, opts.ShowWatermark, th, true);
+                var foot = BuildFooter(quote, opts.ShowWatermark, th);
                 DockPanel.SetDock(foot, Dock.Bottom); chin.Children.Add(foot);
 
                 var chinMain = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
                 chin.Children.Add(chinMain);
 
-                chinMain.Children.Add(new TextBlock
-                {
-                    Text = entry.Name,
-                    FontFamily = SerifFont,
-                    FontSize = isSquare ? 26 : 32,
-                    FontWeight = FontWeights.Bold,
-                    Foreground = Brush(th.Ink),
-                    TextTrimming = TextTrimming.CharacterEllipsis
-                });
+                var headRow = new DockPanel { Margin = new Thickness(0, 0, 0, 8) };
+                var seal = BuildSealBadge(RelativeSpanTag(entry, now), th);
+                seal.Margin = new Thickness(0);
+                DockPanel.SetDock(seal, Dock.Right); headRow.Children.Add(seal);
+                var tSp = new StackPanel();
+                tSp.Children.Add(new TextBlock { Text = entry.Name, FontFamily = SerifFont, FontSize = isSquare ? 24 : 28, FontWeight = FontWeights.Bold, Foreground = Brush(th.Ink), TextTrimming = TextTrimming.CharacterEllipsis });
+                tSp.Children.Add(new TextBlock { Text = entry.Date.ToString("yyyy.MM.dd") + " · " + WeekdayFullZh(entry.Date), FontFamily = MonoFont, FontSize = 10, Foreground = Brush(th.Muted), Margin = new Thickness(0, 2, 0, 0) });
+                headRow.Children.Add(tSp);
+                chinMain.Children.Add(headRow);
+
+                chinMain.Children.Add(BuildProgressTrack(prog, 4.5, th.Accent, th.Track));
 
                 if (opts.IsList && ordered.Count > 1)
                 {
-                    // Minimal one-line upcoming ribbon for Polaroid list mode (clean & uncluttered!)
-                    var others = ordered.Skip(1).Take(3).Select(x =>
-                    {
-                        bool n; string u;
-                        string d = EntryDayNumber(x, now, out n, out u);
-                        return x.Name + " " + d + (n ? "天" : "");
-                    });
-                    chinMain.Children.Add(new TextBlock
-                    {
-                        Text = string.Join("  ·  ", others),
-                        FontFamily = SansFont,
-                        FontSize = 11.5,
-                        Foreground = Brush(th.Muted),
-                        Margin = new Thickness(0, 8, 0, 0),
-                        TextTrimming = TextTrimming.CharacterEllipsis
-                    });
-                }
-                else if (opts.ShowDate)
-                {
-                    string meta = entry.Date.ToString("yyyy.MM.dd") + " · " + WeekdayZh(entry.Date);
-                    if (!string.IsNullOrEmpty(entry.LunarLabel)) meta += " · " + entry.LunarLabel;
-                    chinMain.Children.Add(new TextBlock { Text = meta, FontFamily = MonoFont, FontSize = 11, Foreground = Brush(th.Muted), Margin = new Thickness(0, 6, 0, 0) });
+                    var others = ordered.Skip(1).Take(3).Select(x => { bool n; string u; string d = EntryDayNumber(x, now, out n, out u); return x.Name + " " + d + (n ? "天" : ""); });
+                    chinMain.Children.Add(new TextBlock { Text = "后续期待：" + string.Join("  ·  ", others), FontSize = 10.5, Foreground = Brush(th.Muted), Margin = new Thickness(0, 8, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis });
                 }
             }
         }
@@ -963,7 +1103,7 @@ namespace CountdownWidget
             RenderOptions.SetBitmapScalingMode(root, BitmapScalingMode.HighQuality);
 
             if (th.Id == "polaroid") BuildPolaroidPoster(root, width, height, entries, opts, th);
-            else BuildCuratedPoster(root, width, height, entries, opts, th);
+            else BuildRichBentoPoster(root, width, height, entries, opts, th);
 
             if (opts.RoundedCorners)
             {
@@ -986,7 +1126,7 @@ namespace CountdownWidget
         }
 
         // =========================================================================
-        // Minimalist Gallery-Grade Share Atelier (3 effortless steps, zero bloat!)
+        // Clean 3-Step Share Atelier UI (Simple controls, rich shareable Bento cards!)
         // =========================================================================
         static FrameworkElement BuildShareAtelierView(List<ShareEntry> entries, int initialIndex, string currentConfigSkin, Window hostWin, out Action disposeTimers)
         {
@@ -995,7 +1135,7 @@ namespace CountdownWidget
             body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
             body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(312) });
 
-            // Left Clean Gallery Preview Stage (NO black cave, NO debug pill!)
+            // Left Clean Gallery Preview Stage
             var previewStage = new Border
             {
                 CornerRadius = new CornerRadius(14),
@@ -1053,9 +1193,9 @@ namespace CountdownWidget
             var form = new StackPanel();
             ctrlDock.Children.Add(new ScrollViewer { Content = form, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
 
-            bool isListMode = false;
-            int selTheme = 0; // Default to lush 流光 · 极夜 (instant wow!)
-            int selRatio = 0; // 0=3:4, 1=1:1, 3=9:19.5
+            bool isListMode = true; // Default to rich multi-day Bento timeline!
+            int selTheme = 0;       // Default to iconic 松霜 · 冬序!
+            int selRatio = 0;       // 0=3:4, 1=1:1, 3=9:19.5
             string customPhoto = null;
             Action refresh = null;
 
@@ -1103,14 +1243,14 @@ namespace CountdownWidget
 
             // Step 1: Content Mode + Day Selector
             var modeCap = Label("内容", 11, "Muted"); modeCap.Margin = new Thickness(0, 0, 0, 6); form.Children.Add(modeCap);
-            form.Children.Add(makeSegmented(new[] { "单个日子", "近期清单" }, 0, idx => { isListMode = idx == 1; if (refresh != null) refresh(); }));
+            form.Children.Add(makeSegmented(new[] { "期待清单", "单个日子" }, 0, idx => { isListMode = idx == 0; if (refresh != null) refresh(); }));
 
             var dayPicker = new ComboBox { Margin = new Thickness(0, -4, 0, 14) };
             foreach (var e in entries) dayPicker.Items.Add(e.Name + "  (" + e.Date.ToString("yyyy-MM-dd") + ")");
             dayPicker.SelectedIndex = Math.Max(0, Math.Min(initialIndex, Math.Max(0, entries.Count - 1)));
             form.Children.Add(dayPicker);
 
-            // Step 2: 6 Curated Visual Art Theme Cards (2 cols × 3 rows — what you see is what you get!)
+            // Step 2: 6 Curated Visual Theme Cards (2 cols × 3 rows)
             var styleCap = Label("视觉风格", 11, "Muted"); styleCap.Margin = new Thickness(0, 0, 0, 7); form.Children.Add(styleCap);
 
             var themeGrid = new Grid { Margin = new Thickness(0, 0, 0, 10) };
@@ -1151,27 +1291,15 @@ namespace CountdownWidget
                 card.Child = inner;
 
                 var txtCol = new StackPanel();
-                txtCol.Children.Add(new TextBlock
-                {
-                    Text = th.Name,
-                    FontSize = 11.5,
-                    FontWeight = FontWeights.SemiBold,
-                    Foreground = Brush(th.IsLight ? "#1F1A16" : "#FFFFFF")
-                });
-                txtCol.Children.Add(new TextBlock
-                {
-                    Text = th.Tag,
-                    FontSize = 9.5,
-                    Foreground = Brush(th.IsLight ? "#6E6256" : "#D4E0EE"),
-                    Margin = new Thickness(0, 2, 0, 0)
-                });
+                txtCol.Children.Add(new TextBlock { Text = th.Name, FontSize = 11.5, FontWeight = FontWeights.SemiBold, Foreground = Brush(th.IsLight ? "#1F1A16" : "#FFFFFF") });
+                txtCol.Children.Add(new TextBlock { Text = th.Tag, FontSize = 9.5, Foreground = Brush(th.IsLight ? "#6E6256" : "#DAE4EE"), Margin = new Thickness(0, 2, 0, 0) });
                 inner.Children.Add(txtCol);
 
                 var chk = new Border
                 {
                     Width = 16, Height = 16, CornerRadius = new CornerRadius(8),
                     HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
-                    Background = Brush(th.IsLight ? "#B83326" : "#FFFFFF"),
+                    Background = Brush(th.IsLight ? "#B33428" : "#FFFFFF"),
                     Visibility = Visibility.Collapsed
                 };
                 chk.Child = new TextBlock { Text = "✓", FontSize = 9.5, FontWeight = FontWeights.Bold, Foreground = Brush(th.IsLight ? "#FFFFFF" : "#12151C"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
@@ -1186,21 +1314,17 @@ namespace CountdownWidget
             }
             syncThemes();
 
-            // Contextual Polaroid photo bar (only visible when Polaroid theme is active)
+            // Contextual Polaroid photo bar
             var photoBar = new DockPanel { Margin = new Thickness(0, 0, 0, 12), Visibility = Visibility.Collapsed };
             var clearPhotoBtn = ActionButton("恢复默认", () => { customPhoto = null; if (refresh != null) refresh(); });
-            clearPhotoBtn.Padding = new Thickness(8, 5, 8, 5);
-            clearPhotoBtn.FontSize = 10.5;
-            clearPhotoBtn.Margin = new Thickness(6, 0, 0, 0);
-            DockPanel.SetDock(clearPhotoBtn, Dock.Right);
-            photoBar.Children.Add(clearPhotoBtn);
+            clearPhotoBtn.Padding = new Thickness(8, 5, 8, 5); clearPhotoBtn.FontSize = 10.5; clearPhotoBtn.Margin = new Thickness(6, 0, 0, 0);
+            DockPanel.SetDock(clearPhotoBtn, Dock.Right); photoBar.Children.Add(clearPhotoBtn);
             var pickPhotoBtn = ActionButton("选择照片（或拖入左侧）…", () =>
             {
                 var dlg = new Microsoft.Win32.OpenFileDialog { Title = "选择拍立得相纸照片", Filter = "图片文件|*.png;*.jpg;*.jpeg;*.webp;*.bmp" };
                 if (dlg.ShowDialog(hostWin) == true) { customPhoto = dlg.FileName; if (refresh != null) refresh(); }
             });
-            pickPhotoBtn.Padding = new Thickness(10, 6, 10, 6);
-            pickPhotoBtn.FontSize = 11;
+            pickPhotoBtn.Padding = new Thickness(10, 6, 10, 6); pickPhotoBtn.FontSize = 11;
             photoBar.Children.Add(pickPhotoBtn);
             form.Children.Add(photoBar);
 
@@ -1209,17 +1333,13 @@ namespace CountdownWidget
             int[] uiRatios = { 0, 1, 3 };
             form.Children.Add(makeSegmented(new[] { "3:4 海报", "1:1 方卡", "手机锁屏" }, 0, idx => { selRatio = uiRatios[idx]; if (refresh != null) refresh(); }));
 
-            // Quote line + light inspiration button
+            // Quote + light inspiration button
             var quoteHead = new DockPanel { Margin = new Thickness(0, 2, 0, 6) };
             var quoteBox = new TextBox { Text = LiteraryQuotes[0], MaxLength = 50, Height = 34 };
             var diceBtn = ActionButton("换一句", () => { quoteBox.Text = PickNextQuote(quoteBox.Text); });
-            diceBtn.Padding = new Thickness(6, 1, 6, 1);
-            diceBtn.FontSize = 10.5;
-            diceBtn.Background = Brushes.Transparent;
-            diceBtn.BorderThickness = new Thickness(0);
+            diceBtn.Padding = new Thickness(6, 1, 6, 1); diceBtn.FontSize = 10.5; diceBtn.Background = Brushes.Transparent; diceBtn.BorderThickness = new Thickness(0);
             diceBtn.SetResourceReference(Button.ForegroundProperty, "Accent");
-            DockPanel.SetDock(diceBtn, Dock.Right);
-            quoteHead.Children.Add(diceBtn);
+            DockPanel.SetDock(diceBtn, Dock.Right); quoteHead.Children.Add(diceBtn);
             quoteHead.Children.Add(Label("寄语", 11, "Muted"));
             form.Children.Add(quoteHead);
             form.Children.Add(quoteBox);
