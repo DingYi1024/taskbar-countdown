@@ -368,11 +368,22 @@ namespace CountdownWidget
                 {
                     listStack.Children.Clear();
                     var now = DateTime.Now;
-                    int enabledCount = Config.items.Count(x => x != null && x.enabled && !x.archived);
                     bool isManual = string.Equals(Config.sort_mode, "manual", StringComparison.OrdinalIgnoreCase);
+                    if (!isManual && Config.items.Count > 1)
+                    {
+                        Config.items = Config.items
+                            .Where(x => x != null)
+                            .Select(x => new { Item = x, Res = ResolveItem(x, now) })
+                            .OrderBy(x => x.Res == null ? 3 : (x.Res.IsToday ? 0 : (x.Res.IsCountup ? 2 : (x.Res.IsExpired ? 3 : 1))))
+                            .ThenBy(x => x.Res == null ? int.MaxValue : (x.Res.IsCountup ? -x.Res.DaysValue : x.Res.DaysValue))
+                            .ThenBy(x => x.Res == null ? DateTime.MaxValue : x.Res.TargetDate)
+                            .Select(x => x.Item)
+                            .ToList();
+                    }
+                    int enabledCount = Config.items.Count(x => x != null && x.enabled && !x.archived);
                     undoBtn.Visibility = undoStack.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-                    sortBtn.Content = isManual ? "排序：自定义顺序" : "排序：智能临近";
-                    hSub.Text = "共 " + Config.items.Count + " 个日子 · " + enabledCount + " 个在任务栏展示 · 左侧 ⋮⋮ 可拖拽排序 · Ctrl+Z 撤销";
+                    sortBtn.Content = isManual ? "排序：自定义顺序" : "排序：按时间先后";
+                    hSub.Text = "共 " + Config.items.Count + " 个日子 · " + enabledCount + " 个在任务栏展示 · 默认按时间先后排序 · 左侧 ⋮⋮ 可拖拽";
 
                     if (Config.items.Count == 0)
                     {
