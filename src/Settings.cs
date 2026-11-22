@@ -727,32 +727,44 @@ namespace CountdownWidget
             };
 
             // =====================================================================
-            // TAB 1: 外观画廊 (Live Taskbar Sandbox + 14 Visual Skin Swatch Cards)
+            // TAB 1: 外观画廊 (Pinned Live Taskbar Preview + 6 Curated Skins + Clean Controls)
             // =====================================================================
             Func<FrameworkElement> buildAppearanceTab = () =>
             {
-                var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-                var stack = new StackPanel { Margin = new Thickness(2, 2, 10, 16) };
-                scroll.Content = stack;
+                var outerDock = new DockPanel { Margin = new Thickness(2, 2, 6, 4) };
 
-                var hTitle = Label("外观画廊", 20, "Ink"); hTitle.FontWeight = FontWeights.SemiBold;
-                stack.Children.Add(hTitle);
-                var hSub = Label("点击任意色卡即刻同步到你的 Windows 任务栏，无需额外保存。", 11.5, "Muted");
-                hSub.Margin = new Thickness(0, 3, 0, 14);
-                stack.Children.Add(hSub);
+                // --- Top Pinned Header + 1:1 Live Taskbar Preview (never scrolls out of view!) ---
+                var topPin = new StackPanel();
+                DockPanel.SetDock(topPin, Dock.Top);
+                outerDock.Children.Add(topPin);
 
-                // --- 1:1 Live Taskbar Preview Sandbox ---
+                var headRow = new DockPanel { Margin = new Thickness(0, 0, 0, 10) };
                 bool sandboxDark = !IsLight();
-                var sandboxCard = new Border { CornerRadius = new CornerRadius(12), ClipToBounds = true, BorderThickness = new Thickness(1), Margin = new Thickness(0, 0, 0, 16) };
+                var wallSwitchBtn = ActionButton("", () => { });
+                wallSwitchBtn.Padding = new Thickness(10, 4.5, 10, 4.5);
+                wallSwitchBtn.FontSize = 10.5;
+                DockPanel.SetDock(wallSwitchBtn, Dock.Right);
+                headRow.Children.Add(wallSwitchBtn);
+
+                var hStack = new StackPanel();
+                var hTitle = Label("外观画廊", 20, "Ink"); hTitle.FontWeight = FontWeights.SemiBold;
+                hStack.Children.Add(hTitle);
+                var hSub = Label("精选 6 款个性鲜明的常用风格，点选即刻实时同步到任务栏。", 11, "Muted");
+                hSub.Margin = new Thickness(0, 2, 0, 0);
+                hStack.Children.Add(hSub);
+                headRow.Children.Add(hStack);
+                topPin.Children.Add(headRow);
+
+                var sandboxCard = new Border { CornerRadius = new CornerRadius(12), ClipToBounds = true, BorderThickness = new Thickness(1), Margin = new Thickness(0, 0, 0, 14) };
                 sandboxCard.SetResourceReference(Border.BorderBrushProperty, "Line");
-                var sandboxGrid = new Grid { Height = 122 };
+                var sandboxGrid = new Grid { Height = 92 };
                 sandboxCard.Child = sandboxGrid;
-                stack.Children.Add(sandboxCard);
+                topPin.Children.Add(sandboxCard);
 
                 var wallpaperLayer = new Border();
                 sandboxGrid.Children.Add(wallpaperLayer);
 
-                var simTaskbar = new Border { Height = 48, VerticalAlignment = VerticalAlignment.Bottom, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(18, 0, 18, 0) };
+                var simTaskbar = new Border { Height = 46, VerticalAlignment = VerticalAlignment.Bottom, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(16, 0, 16, 0) };
                 sandboxGrid.Children.Add(simTaskbar);
 
                 var tbDock = new DockPanel();
@@ -767,14 +779,6 @@ namespace CountdownWidget
                 var pillPreviewHost = new ContentControl { VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left };
                 tbDock.Children.Add(pillPreviewHost);
 
-                var wallSwitchBtn = ActionButton("切换预览壁纸", () => { });
-                wallSwitchBtn.Padding = new Thickness(9, 4, 9, 4);
-                wallSwitchBtn.FontSize = 10.5;
-                wallSwitchBtn.HorizontalAlignment = HorizontalAlignment.Right;
-                wallSwitchBtn.VerticalAlignment = VerticalAlignment.Top;
-                wallSwitchBtn.Margin = new Thickness(0, 10, 12, 0);
-                sandboxGrid.Children.Add(wallSwitchBtn);
-
                 Action refreshSandbox = () =>
                 {
                     wallpaperLayer.Background = sandboxDark
@@ -784,7 +788,7 @@ namespace CountdownWidget
                     simTaskbar.BorderBrush = Brush(sandboxDark ? "#22FFFFFF" : "#18000000");
                     fcTime.Foreground = Brush(sandboxDark ? "#EEF2F7" : "#1D2430");
                     fcDate.Foreground = Brush(sandboxDark ? "#A8B3C2" : "#5F6B7A");
-                    wallSwitchBtn.Content = sandboxDark ? "☀ 浅色桌面预览" : "🌙 深色桌面预览";
+                    wallSwitchBtn.Content = sandboxDark ? "☀ 切浅色桌面预览" : "🌙 切深色桌面预览";
 
                     bool previewLight = Config.theme == "light" ? true : (Config.theme == "dark" ? false : !sandboxDark);
                     string sid = ResolveSkinId();
@@ -815,7 +819,7 @@ namespace CountdownWidget
                     var sampleList = GetResolvedItems(now).Take(Config.display_mode == "single" || Config.display_mode == "rotate" ? 1 : (Config.display_mode == "dual" ? 2 : 3)).ToList();
                     if (sampleList.Count == 0)
                     {
-                        pillStack.Children.Add(new TextBlock { Text = "春节 85 天", Foreground = Brush(sk.Text), FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
+                        pillStack.Children.Add(new TextBlock { Text = "春节 76 天", Foreground = Brush(sk.Text), FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
                     }
                     else
                     {
@@ -853,109 +857,14 @@ namespace CountdownWidget
                 };
                 wallSwitchBtn.Click += (s, e) => { sandboxDark = !sandboxDark; refreshSandbox(); };
 
-                // --- Layout & Behavior Controls Card ---
-                var cfgCard = new Border { CornerRadius = new CornerRadius(12), Padding = new Thickness(16, 14, 16, 14), BorderThickness = new Thickness(1), Margin = new Thickness(0, 0, 0, 16) };
-                cfgCard.SetResourceReference(Border.BackgroundProperty, "Surface");
-                cfgCard.SetResourceReference(Border.BorderBrushProperty, "Line");
-                stack.Children.Add(cfgCard);
+                // --- Scrollable Clean Content Below Pinned Preview ---
+                var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+                var stack = new StackPanel { Margin = new Thickness(0, 0, 4, 12) };
+                scroll.Content = stack;
+                outerDock.Children.Add(scroll);
 
-                var cfgGrid = new Grid();
-                cfgGrid.ColumnDefinitions.Add(new ColumnDefinition());
-                cfgGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
-                cfgGrid.ColumnDefinitions.Add(new ColumnDefinition());
-                cfgCard.Child = cfgGrid;
-
-                var leftCfg = new StackPanel(); Grid.SetColumn(leftCfg, 0); cfgGrid.Children.Add(leftCfg);
-                var rightCfg = new StackPanel(); Grid.SetColumn(rightCfg, 2); cfgGrid.Children.Add(rightCfg);
-
-                // Mode selector
-                string[] modeIds = { "single", "dual", "expand", "rotate" };
-                int curModeIdx = Math.Max(0, Array.IndexOf(modeIds, (Config.display_mode ?? "expand").ToLowerInvariant()));
-                var mCap = Label("任务栏胶囊形态", 11, "Muted"); mCap.Margin = new Thickness(0, 0, 0, 6); leftCfg.Children.Add(mCap);
-                var rotateRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0), Visibility = curModeIdx == 3 ? Visibility.Visible : Visibility.Collapsed };
-                leftCfg.Children.Add(makeStudioSegmented(new[] { "单焦", "双联", "并排", "轮播" }, curModeIdx, idx =>
-                {
-                    Config.display_mode = modeIds[idx];
-                    rotateRow.Visibility = idx == 3 ? Visibility.Visible : Visibility.Collapsed;
-                    liveCommit(false);
-                    refreshSandbox();
-                }));
-
-                rotateRow.Children.Add(Label("轮播切换间隔（秒）", 11, "Muted"));
-                var rotBox = new TextBox { Text = Config.rotate_seconds.ToString(), Width = 48, Height = 28, Margin = new Thickness(8, 0, 0, 0), TextAlignment = TextAlignment.Center, MaxLength = 2 };
-                rotBox.LostFocus += (s, e) =>
-                {
-                    int v;
-                    if (int.TryParse(rotBox.Text, out v) && v >= 2 && v <= 60) { Config.rotate_seconds = v; liveCommit(false); }
-                    else rotBox.Text = Config.rotate_seconds.ToString();
-                };
-                rotateRow.Children.Add(rotBox);
-                leftCfg.Children.Add(rotateRow);
-
-                // Font style selector
-                string[] fontIds = { "modern", "editorial", "mono" };
-                int curFontIdx = Math.Max(0, Array.IndexOf(fontIds, (Config.font_style ?? "modern").ToLowerInvariant()));
-                var fCap = Label("数字排版风格", 11, "Muted"); fCap.Margin = new Thickness(0, 12, 0, 6); leftCfg.Children.Add(fCap);
-                leftCfg.Children.Add(makeStudioSegmented(new[] { "现代工业", "人文衬线", "极客等宽" }, curFontIdx, idx =>
-                {
-                    Config.font_style = fontIds[idx];
-                    liveCommit(false);
-                    refreshSandbox();
-                }));
-
-                // Theme selector
-                string[] themeIds = { "system", "light", "dark" };
-                int curThemeIdx = Math.Max(0, Array.IndexOf(themeIds, (Config.theme ?? "system").ToLowerInvariant()));
-                var tCap = Label("明暗外观", 11, "Muted"); tCap.Margin = new Thickness(0, 0, 0, 6); rightCfg.Children.Add(tCap);
-                rightCfg.Children.Add(makeStudioSegmented(new[] { "跟随系统", "云白浅色", "曜石深色" }, curThemeIdx, idx =>
-                {
-                    Config.theme = themeIds[idx];
-                    liveCommit(true);
-                    if (refreshCurrentTab != null) refreshCurrentTab();
-                }));
-
-                // Taskbar magnetic anchor
-                string[] anchorIds = { "free", "left", "right" };
-                int curAnchorIdx = Math.Max(0, Array.IndexOf(anchorIds, (Config.anchor ?? "free").ToLowerInvariant()));
-                var aCap = Label("任务栏位置吸附", 11, "Muted"); aCap.Margin = new Thickness(0, 12, 0, 6); rightCfg.Children.Add(aCap);
-                rightCfg.Children.Add(makeStudioSegmented(new[] { "自由拖动", "贴靠左侧", "贴靠托盘" }, curAnchorIdx, idx =>
-                {
-                    Config.anchor = anchorIds[idx];
-                    liveCommit(false);
-                }));
-
-                // Toggles row below
-                var togglesWrap = new WrapPanel { Margin = new Thickness(0, 14, 0, 0) };
-                Grid.SetColumnSpan(togglesWrap, 3);
-                var cfgOuter = new StackPanel();
-                cfgCard.Child = cfgOuter;
-                cfgOuter.Children.Add(cfgGrid);
-                cfgOuter.Children.Add(togglesWrap);
-
-                Action<string, bool, Action<bool>> addSwitch = (lbl, init, onToggle) =>
-                {
-                    var chk = new CheckBox { Content = lbl, IsChecked = init, Margin = new Thickness(0, 0, 22, 6), FontSize = 11.5 };
-                    chk.Checked += (s, e) => { onToggle(true); refreshSandbox(); };
-                    chk.Unchecked += (s, e) => { onToggle(false); refreshSandbox(); };
-                    togglesWrap.Children.Add(chk);
-                };
-                addSwitch("半透明磨砂感", Config.glass, v => { Config.glass = v; liveCommit(true); });
-                addSwitch("底部时光进度光丝", Config.show_progress_bar, v => { Config.show_progress_bar = v; liveCommit(true); });
-                addSwitch("微光动效与翻牌", Config.motion, v => { Config.motion = v; liveCommit(true); });
-                addSwitch("任务栏直接显示时分秒", Config.show_seconds, v => { Config.show_seconds = v; liveCommit(false); });
-
-                // --- Balanced Visual Skin Gallery (Zero-Orphan Bento Sections: 8 Daily 4×2 + 6 Seasonal 3×2) ---
+                // --- Curated 6 Signature Skins (3×2 — matches current Light/Dark faithfully, zero visual clutter!) ---
                 bool galleryLight = IsLight();
-                var nowGal = DateTime.Now;
-                var heroSample = GetResolvedItems(nowGal).FirstOrDefault();
-                string sampleName = heroSample != null ? heroSample.Name : "春节";
-                if (sampleName.Length > 4) sampleName = sampleName.Substring(0, 4);
-                string sampleIcon = heroSample != null ? heroSample.ResolvedIcon : "sparkle";
-                string sampleDays = heroSample != null
-                    ? (heroSample.IsToday ? "今天" : (heroSample.DaysValue + " 天"))
-                    : "33 天";
-                double sampleProg = heroSample != null ? Math.Max(0.22, Math.Min(0.88, heroSample.Progress)) : 0.62;
-
                 var allSelectableIds = new List<string>();
                 var allSkinCards = new List<Border>();
                 var allCheckBadges = new List<Border>();
@@ -968,217 +877,253 @@ namespace CountdownWidget
                         bool on = string.Equals(allSelectableIds[i], activeS, StringComparison.OrdinalIgnoreCase);
                         allSkinCards[i].BorderThickness = new Thickness(on ? 1.8 : 1);
                         allSkinCards[i].SetResourceReference(Border.BorderBrushProperty, on ? "Accent" : "Line");
-                        allSkinCards[i].SetResourceReference(Border.BackgroundProperty, on ? "Surface" : "Surface");
                         allCheckBadges[i].Visibility = on ? Visibility.Visible : Visibility.Collapsed;
                     }
                 };
 
-                Action<string, string, string[], int> buildSkinSection = (secTitle, secHint, ids, cols) =>
+                Func<string, bool, Border> createSkinCard = (sid, compact) =>
                 {
-                    var secHead = new DockPanel { Margin = new Thickness(2, 4, 2, 10) };
-                    var shRight = Label(secHint, 10.5, "Muted");
-                    shRight.VerticalAlignment = VerticalAlignment.Bottom;
-                    DockPanel.SetDock(shRight, Dock.Right);
-                    secHead.Children.Add(shRight);
-                    var shLeft = Label(secTitle, 13.5, "Ink");
-                    shLeft.FontWeight = FontWeights.SemiBold;
-                    secHead.Children.Add(shLeft);
-                    stack.Children.Add(secHead);
+                    bool isAuto = sid == "auto";
+                    bool isMin = sid == "minimal";
+                    var spec = isAuto ? null : FindSkin(sid);
+                    // Faithfully match current Light/Dark mode so dark mode NEVER flashes blinding white blocks!
+                    var pal = isAuto ? PickSkinPalette("christmas", galleryLight) : (galleryLight ? spec.LightPal : spec.DarkPal);
 
-                    var grid = new Grid { Margin = new Thickness(0, 0, 0, 12) };
-                    for (int c = 0; c < cols; c++)
+                    var card = new Border
                     {
-                        if (c > 0) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
-                        grid.ColumnDefinitions.Add(new ColumnDefinition());
+                        CornerRadius = new CornerRadius(11),
+                        Padding = compact ? new Thickness(10, 9, 10, 9) : new Thickness(12, 11, 12, 11),
+                        Margin = new Thickness(0, 0, 0, 10),
+                        Cursor = Cursors.Hand,
+                        BorderThickness = new Thickness(1)
+                    };
+                    card.SetResourceReference(Border.BackgroundProperty, "Surface");
+                    card.SetResourceReference(Border.BorderBrushProperty, "Line");
+
+                    var cStack = new StackPanel();
+                    card.Child = cStack;
+
+                    // Pure, calm color & material bar (NO repetitive "圣诞 33 天" spam!)
+                    var barHost = new Grid { Margin = new Thickness(0, 0, 0, 8) };
+                    var bar = new Border
+                    {
+                        Height = compact ? 24 : 30,
+                        CornerRadius = new CornerRadius(7),
+                        Padding = new Thickness(9, 0, 9, 0),
+                        BorderThickness = new Thickness(1)
+                    };
+
+                    if (isMin)
+                    {
+                        // Instantly distinguishable frameless transparent look
+                        bar.Background = Brushes.Transparent;
+                        bar.SetResourceReference(Border.BorderBrushProperty, "Line");
+                        var minDock = new DockPanel { VerticalAlignment = VerticalAlignment.Center };
+                        var minDot = new Ellipse { Width = 7, Height = 7, Fill = Brush(pal.Accent), VerticalAlignment = VerticalAlignment.Center };
+                        DockPanel.SetDock(minDot, Dock.Right); minDock.Children.Add(minDot);
+                        minDock.Children.Add(new TextBlock { Text = "透明无框", FontSize = 10, Foreground = Brush(pal.Muted), VerticalAlignment = VerticalAlignment.Center });
+                        bar.Child = minDock;
                     }
-                    int rows = (ids.Length + cols - 1) / cols;
-                    for (int r = 0; r < rows; r++) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                    stack.Children.Add(grid);
-
-                    for (int i = 0; i < ids.Length; i++)
+                    else if (isAuto)
                     {
-                        string sid = ids[i];
-                        bool isAuto = sid == "auto";
-                        var spec = isAuto ? null : FindSkin(sid);
-
-                        // Showcase each skin's signature mood (dark-signature skins like Vinyl/Aurora/Christmas show their iconic dark richness)
-                        bool swatchLight = isAuto ? true
-                            : (sid == "default" || sid == "minimal") ? galleryLight
-                            : spec.LightDefault;
-                        var pal = isAuto ? PickSkinPalette("christmas", false) : (swatchLight ? spec.LightPal : spec.DarkPal);
-
-                        var card = new Border
-                        {
-                            CornerRadius = new CornerRadius(11),
-                            Padding = new Thickness(11, 10, 11, 11),
-                            Margin = new Thickness(0, 0, 0, 10),
-                            Cursor = Cursors.Hand,
-                            BorderThickness = new Thickness(1)
-                        };
-                        card.SetResourceReference(Border.BackgroundProperty, "Surface");
-                        card.SetResourceReference(Border.BorderBrushProperty, "Line");
-
-                        var cStack = new StackPanel();
-                        card.Child = cStack;
-
-                        // Miniature taskbar pill preview stage
-                        var stage = new Grid { Margin = new Thickness(0, 0, 0, 9) };
-                        var swatch = new Border
-                        {
-                            Height = 46,
-                            CornerRadius = new CornerRadius(9),
-                            Padding = new Thickness(10, 0, 10, 0),
-                            ClipToBounds = true,
-                            BorderThickness = new Thickness(sid == "minimal" ? 1 : 1)
-                        };
-
-                        if (sid == "minimal")
-                        {
-                            swatch.Background = new LinearGradientBrush(C_(galleryLight ? "#EDF1F6" : "#1B212A"), C_(galleryLight ? "#E4EAF1" : "#151A22"), 45);
-                            swatch.BorderBrush = Brush(galleryLight ? "#28000000" : "#26FFFFFF");
-                        }
-                        else if (isAuto)
-                        {
-                            var autoGrad = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 1) };
-                            autoGrad.GradientStops.Add(new GradientStop(C_("#1D3930"), 0.0));
-                            autoGrad.GradientStops.Add(new GradientStop(C_("#24334C"), 0.55));
-                            autoGrad.GradientStops.Add(new GradientStop(C_("#5E2421"), 1.0));
-                            swatch.Background = autoGrad;
-                            swatch.BorderBrush = Brush("#33FFFFFF");
-                        }
-                        else
-                        {
-                            swatch.Background = new LinearGradientBrush(C_(pal.Bg1), C_(pal.Bg2), new Point(0, 0), new Point(1, 1));
-                            swatch.BorderBrush = Brush(swatchLight ? "#1C000000" : "#28FFFFFF");
-                        }
-
-                        var swGrid = new Grid();
-                        if (sid == "xuanpaper" || sid == "vinyl" || sid == "cream" || sid == "spring")
-                        {
-                            swGrid.Children.Add(new Rectangle { Fill = PaperGrainBrush(swatchLight), IsHitTestVisible = false, Opacity = 0.9 });
-                        }
-
+                        var autoGrad = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 0) };
+                        autoGrad.GradientStops.Add(new GradientStop(C_(galleryLight ? "#D7E8DF" : "#1D3C32"), 0.0));
+                        autoGrad.GradientStops.Add(new GradientStop(C_(galleryLight ? "#DCE6F4" : "#223450"), 0.5));
+                        autoGrad.GradientStops.Add(new GradientStop(C_(galleryLight ? "#F3DDD4" : "#562422"), 1.0));
+                        bar.Background = autoGrad;
+                        bar.BorderBrush = Brush(galleryLight ? "#18000000" : "#26FFFFFF");
+                        var autoDock = new DockPanel { VerticalAlignment = VerticalAlignment.Center };
+                        var spk = new TextBlock { Text = "✦ 推荐", FontSize = 9.5, FontWeight = FontWeights.SemiBold, Foreground = Brush(galleryLight ? "#286B51" : "#F0D18A"), VerticalAlignment = VerticalAlignment.Center };
+                        DockPanel.SetDock(spk, Dock.Right); autoDock.Children.Add(spk);
+                        autoDock.Children.Add(new TextBlock { Text = "自动随节庆变换", FontSize = 10, Foreground = Brush(galleryLight ? "#2A3B34" : "#E8EFEA"), VerticalAlignment = VerticalAlignment.Center });
+                        bar.Child = autoDock;
+                    }
+                    else
+                    {
+                        bar.Background = new LinearGradientBrush(C_(pal.Bg1), C_(pal.Bg2), new Point(0, 0), new Point(1, 0));
+                        bar.BorderBrush = Brush(galleryLight ? "#1C000000" : "#28FFFFFF");
                         var swDock = new DockPanel { VerticalAlignment = VerticalAlignment.Center };
-                        string numHex = isAuto ? "#F0D18A" : pal.Accent;
-                        string lblHex = isAuto ? "#F5EFE4" : pal.Text;
-                        string icoHex = isAuto ? "#F0D18A" : pal.Detail;
+                        var gem = new Ellipse { Width = 9, Height = 9, Fill = Brush(pal.Accent), VerticalAlignment = VerticalAlignment.Center };
+                        DockPanel.SetDock(gem, Dock.Right); swDock.Children.Add(gem);
+                        var accentBar = new Border { Width = 28, Height = 3, CornerRadius = new CornerRadius(1.5), Background = Brush(HexA("CC", pal.Accent)), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center };
+                        swDock.Children.Add(accentBar);
+                        bar.Child = swDock;
+                    }
+                    barHost.Children.Add(bar);
 
-                        var swNum = new TextBlock
-                        {
-                            Text = sampleDays,
-                            FontFamily = WidgetNumFont,
-                            FontSize = cols == 4 ? 14 : 15.5,
-                            FontWeight = FontWeights.Bold,
-                            Foreground = Brush(numHex),
-                            VerticalAlignment = VerticalAlignment.Center
-                        };
-                        DockPanel.SetDock(swNum, Dock.Right);
-                        swDock.Children.Add(swNum);
+                    var chkBadge = new Border
+                    {
+                        Width = 17, Height = 17, CornerRadius = new CornerRadius(8.5),
+                        HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
+                        Margin = new Thickness(0, -5, -5, 0),
+                        Visibility = Visibility.Collapsed
+                    };
+                    chkBadge.SetResourceReference(Border.BackgroundProperty, "Accent");
+                    chkBadge.Child = new TextBlock { Text = "✓", FontSize = 9.5, FontWeight = FontWeights.Bold, Foreground = galleryLight ? Brushes.White : Brush("#16181D"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                    barHost.Children.Add(chkBadge);
+                    cStack.Children.Add(barHost);
 
-                        var leftInfo = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-                        var miniIco = BuildEventIcon(isAuto ? "sparkle" : sampleIcon, 11.5, Brush(icoHex), 1.45);
-                        miniIco.Margin = new Thickness(0, 0, 5, 0);
-                        leftInfo.Children.Add(miniIco);
-                        leftInfo.Children.Add(new TextBlock
-                        {
-                            Text = isAuto ? "节庆联动" : sampleName,
-                            FontSize = cols == 4 ? 10.5 : 11,
-                            FontWeight = FontWeights.Medium,
-                            Foreground = Brush(lblHex),
-                            TextTrimming = TextTrimming.CharacterEllipsis,
-                            VerticalAlignment = VerticalAlignment.Center
-                        });
-                        swDock.Children.Add(leftInfo);
-                        swGrid.Children.Add(swDock);
+                    var sName = Label(isAuto ? "跟随最近节日" : spec.Label, compact ? 11.5 : 12.5, "Ink");
+                    sName.FontWeight = FontWeights.SemiBold;
+                    cStack.Children.Add(sName);
 
-                        // Bottom 2px signature micro progress hairline (omitted in frameless minimal mode)
-                        if (sid != "minimal")
-                        {
-                            var progBar = new Grid { Height = 2, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 2) };
-                            progBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(sampleProg, GridUnitType.Star) });
-                            progBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1 - sampleProg, GridUnitType.Star) });
-                            var progFill = new Border { Background = Brush(HexA("CC", numHex)), CornerRadius = new CornerRadius(1) };
-                            Grid.SetColumn(progFill, 0);
-                            progBar.Children.Add(progFill);
-                            swGrid.Children.Add(progBar);
-                        }
-
-                        swatch.Child = swGrid;
-                        stage.Children.Add(swatch);
-
-                        // Crisp active checkmark badge in top-right of swatch
-                        var chkBadge = new Border
-                        {
-                            Width = 18, Height = 18, CornerRadius = new CornerRadius(9),
-                            HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
-                            Margin = new Thickness(0, -4, -4, 0),
-                            Visibility = Visibility.Collapsed
-                        };
-                        chkBadge.SetResourceReference(Border.BackgroundProperty, "Accent");
-                        chkBadge.Child = new TextBlock { Text = "✓", FontSize = 10, FontWeight = FontWeights.Bold, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-                        stage.Children.Add(chkBadge);
-
-                        cStack.Children.Add(stage);
-
-                        var sName = Label(isAuto ? "跟随最近节日" : spec.Label, cols == 4 ? 11.5 : 12, "Ink");
-                        sName.FontWeight = FontWeights.SemiBold;
-                        sName.TextTrimming = TextTrimming.CharacterEllipsis;
-                        cStack.Children.Add(sName);
-
-                        var sSub = Label(isAuto ? "临近传统佳节自动切换氛围" : (spec.Subtitle ?? ""), 10, "Muted");
+                    if (!compact)
+                    {
+                        var sSub = Label(isAuto ? "佳节临近自动切换氛围" : (spec.Subtitle ?? ""), 10, "Muted");
                         sSub.Margin = new Thickness(0, 2, 0, 0);
                         sSub.TextTrimming = TextTrimming.CharacterEllipsis;
                         cStack.Children.Add(sSub);
-
-                        card.MouseEnter += (s, e) =>
-                        {
-                            string activeS = string.IsNullOrEmpty(Config.skin) ? "default" : Config.skin;
-                            if (!string.Equals(sid, activeS, StringComparison.OrdinalIgnoreCase))
-                                card.SetResourceReference(Border.BorderBrushProperty, "Muted");
-                        };
-                        card.MouseLeave += (s, e) =>
-                        {
-                            string activeS = string.IsNullOrEmpty(Config.skin) ? "default" : Config.skin;
-                            if (!string.Equals(sid, activeS, StringComparison.OrdinalIgnoreCase))
-                                card.SetResourceReference(Border.BorderBrushProperty, "Line");
-                        };
-                        card.MouseLeftButtonUp += (s, e) =>
-                        {
-                            Config.skin = sid;
-                            liveCommit(true);
-                            syncSkinSelection();
-                            refreshSandbox();
-                        };
-
-                        Grid.SetRow(card, i / cols);
-                        Grid.SetColumn(card, (i % cols) * 2);
-                        grid.Children.Add(card);
-
-                        allSelectableIds.Add(sid);
-                        allSkinCards.Add(card);
-                        allCheckBadges.Add(chkBadge);
                     }
+
+                    card.MouseEnter += (s, e) =>
+                    {
+                        string activeS = string.IsNullOrEmpty(Config.skin) ? "default" : Config.skin;
+                        if (!string.Equals(sid, activeS, StringComparison.OrdinalIgnoreCase))
+                            card.SetResourceReference(Border.BorderBrushProperty, "Muted");
+                    };
+                    card.MouseLeave += (s, e) =>
+                    {
+                        string activeS = string.IsNullOrEmpty(Config.skin) ? "default" : Config.skin;
+                        if (!string.Equals(sid, activeS, StringComparison.OrdinalIgnoreCase))
+                            card.SetResourceReference(Border.BorderBrushProperty, "Line");
+                    };
+                    card.MouseLeftButtonUp += (s, e) =>
+                    {
+                        Config.skin = sid;
+                        liveCommit(true);
+                        syncSkinSelection();
+                        refreshSandbox();
+                    };
+
+                    allSelectableIds.Add(sid);
+                    allSkinCards.Add(card);
+                    allCheckBadges.Add(chkBadge);
+                    return card;
                 };
 
-                // Section 1: 8 Daily Artisanal Skins (4 cols × 2 rows — 100% balanced!)
-                buildSkinSection(
-                    "日常质感 · 大师皮肤",
-                    "8 款常驻 · 均支持深/浅双模自适应",
-                    new[] { "default", "minimal", "xuanpaper", "vinyl", "monet", "cream", "celadon", "aurora" },
-                    4
-                );
+                // Primary 6 Curated Skins (3 cols × 2 rows)
+                string[] primaryIds = { "auto", "minimal", "default", "christmas", "xuanpaper", "vinyl" };
+                string[] extraIds = { "aurora", "celadon", "cream", "monet", "newyear", "spring", "midautumn", "national" };
 
-                // Section 2: 6 Seasonal & Festival Editions (3 cols × 2 rows — 100% balanced!)
-                buildSkinSection(
-                    "岁时节庆 · 氛围限定",
-                    "6 款节庆 · 含智能跟随",
-                    new[] { "auto", "christmas", "newyear", "spring", "midautumn", "national" },
-                    3
-                );
+                var mainGrid = new Grid();
+                for (int c = 0; c < 3; c++)
+                {
+                    if (c > 0) mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition());
+                }
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                stack.Children.Add(mainGrid);
+
+                for (int i = 0; i < primaryIds.Length; i++)
+                {
+                    var card = createSkinCard(primaryIds[i], false);
+                    Grid.SetRow(card, i / 3);
+                    Grid.SetColumn(card, (i % 3) * 2);
+                    mainGrid.Children.Add(card);
+                }
+
+                // Quiet collapsible drawer for the other 8 specialty themes (expanded automatically if one is currently active!)
+                bool activeInExtra = extraIds.Any(x => string.Equals(x, Config.skin, StringComparison.OrdinalIgnoreCase));
+                var extraGrid = new Grid { Visibility = activeInExtra ? Visibility.Visible : Visibility.Collapsed, Margin = new Thickness(0, 2, 0, 4) };
+                for (int c = 0; c < 4; c++)
+                {
+                    if (c > 0) extraGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
+                    extraGrid.ColumnDefinitions.Add(new ColumnDefinition());
+                }
+                extraGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                extraGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                for (int i = 0; i < extraIds.Length; i++)
+                {
+                    var card = createSkinCard(extraIds[i], true);
+                    Grid.SetRow(card, i / 4);
+                    Grid.SetColumn(card, (i % 4) * 2);
+                    extraGrid.Children.Add(card);
+                }
+
+                var moreBtn = ActionButton(activeInExtra ? "收起更多配色 ▴" : "更多节日与氛围配色（8 款） ▾", () => { });
+                moreBtn.Background = Brushes.Transparent;
+                moreBtn.BorderThickness = new Thickness(0);
+                moreBtn.Padding = new Thickness(2, 2, 6, 8);
+                moreBtn.FontSize = 11;
+                moreBtn.HorizontalAlignment = HorizontalAlignment.Left;
+                moreBtn.SetResourceReference(Button.ForegroundProperty, "Muted");
+                moreBtn.Click += (s, e) =>
+                {
+                    bool show = extraGrid.Visibility != Visibility.Visible;
+                    extraGrid.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+                    moreBtn.Content = show ? "收起更多配色 ▴" : "更多节日与氛围配色（8 款） ▾";
+                };
+                stack.Children.Add(moreBtn);
+                stack.Children.Add(extraGrid);
+
+                // --- Compact Essential Display Controls (only 2 segmented groups + 3 clean switches!) ---
+                var cfgCard = new Border { CornerRadius = new CornerRadius(12), Padding = new Thickness(16, 13, 16, 12), BorderThickness = new Thickness(1), Margin = new Thickness(0, 4, 0, 4) };
+                cfgCard.SetResourceReference(Border.BackgroundProperty, "Surface");
+                cfgCard.SetResourceReference(Border.BorderBrushProperty, "Line");
+                stack.Children.Add(cfgCard);
+
+                var cfgOuter = new StackPanel();
+                cfgCard.Child = cfgOuter;
+
+                var cfgGrid = new Grid();
+                cfgGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.15, GridUnitType.Star) });
+                cfgGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
+                cfgGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.0, GridUnitType.Star) });
+                cfgOuter.Children.Add(cfgGrid);
+
+                var leftCfg = new StackPanel(); Grid.SetColumn(leftCfg, 0); cfgGrid.Children.Add(leftCfg);
+                var rightCfg = new StackPanel(); Grid.SetColumn(rightCfg, 2); cfgGrid.Children.Add(rightCfg);
+
+                string[] modeIds = { "single", "dual", "expand", "rotate" };
+                int curModeIdx = Math.Max(0, Array.IndexOf(modeIds, (Config.display_mode ?? "expand").ToLowerInvariant()));
+                var mCap = Label("任务栏形态", 10.5, "Muted"); mCap.Margin = new Thickness(0, 0, 0, 5); leftCfg.Children.Add(mCap);
+                var rotateRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 7, 0, 0), Visibility = curModeIdx == 3 ? Visibility.Visible : Visibility.Collapsed };
+                leftCfg.Children.Add(makeStudioSegmented(new[] { "单焦", "双联", "并排", "轮播" }, curModeIdx, idx =>
+                {
+                    Config.display_mode = modeIds[idx];
+                    rotateRow.Visibility = idx == 3 ? Visibility.Visible : Visibility.Collapsed;
+                    liveCommit(false);
+                    refreshSandbox();
+                }));
+
+                rotateRow.Children.Add(Label("轮播间隔（秒）", 10.5, "Muted"));
+                var rotBox = new TextBox { Text = Config.rotate_seconds.ToString(), Width = 44, Height = 26, Margin = new Thickness(8, 0, 0, 0), TextAlignment = TextAlignment.Center, MaxLength = 2 };
+                rotBox.LostFocus += (s, e) =>
+                {
+                    int v;
+                    if (int.TryParse(rotBox.Text, out v) && v >= 2 && v <= 60) { Config.rotate_seconds = v; liveCommit(false); }
+                    else rotBox.Text = Config.rotate_seconds.ToString();
+                };
+                rotateRow.Children.Add(rotBox);
+                leftCfg.Children.Add(rotateRow);
+
+                string[] themeIds = { "system", "light", "dark" };
+                int curThemeIdx = Math.Max(0, Array.IndexOf(themeIds, (Config.theme ?? "system").ToLowerInvariant()));
+                var tCap = Label("明暗模式", 10.5, "Muted"); tCap.Margin = new Thickness(0, 0, 0, 5); rightCfg.Children.Add(tCap);
+                rightCfg.Children.Add(makeStudioSegmented(new[] { "跟随系统", "浅色", "深色" }, curThemeIdx, idx =>
+                {
+                    Config.theme = themeIds[idx];
+                    liveCommit(true);
+                    if (refreshCurrentTab != null) refreshCurrentTab();
+                }));
+
+                var togglesWrap = new WrapPanel { Margin = new Thickness(0, 12, 0, 0) };
+                cfgOuter.Children.Add(togglesWrap);
+                Action<string, bool, Action<bool>> addSwitch = (lbl, init, onToggle) =>
+                {
+                    var chk = new CheckBox { Content = lbl, IsChecked = init, Margin = new Thickness(0, 0, 22, 2), FontSize = 11.5 };
+                    chk.Checked += (s, e) => { onToggle(true); refreshSandbox(); };
+                    chk.Unchecked += (s, e) => { onToggle(false); refreshSandbox(); };
+                    togglesWrap.Children.Add(chk);
+                };
+                addSwitch("半透明磨砂", Config.glass, v => { Config.glass = v; liveCommit(true); });
+                addSwitch("底部进度光丝", Config.show_progress_bar, v => { Config.show_progress_bar = v; liveCommit(true); });
+                addSwitch("微光动效", Config.motion, v => { Config.motion = v; liveCommit(true); });
 
                 syncSkinSelection();
                 refreshSandbox();
-                return scroll;
+                return outerDock;
             };
 
             // =====================================================================
@@ -1267,9 +1212,35 @@ namespace CountdownWidget
                 clickSeg.Width = 216;
                 addSettingRow(s1, "左键单击任务栏胶囊", "推荐展开「期待浮层」，不撑宽任务栏即可查看精确秒表、全部日程与快捷记一笔。", clickSeg);
 
-                // Card 2: Position & Quick Actions
-                var s2 = makeSectionCard("任务栏定位与调试");
-                var posBtns = new StackPanel { Orientation = Orientation.Horizontal };
+                // Card 2: Position, Typography & Quick Actions
+                var s2 = makeSectionCard("任务栏定位与细节");
+
+                string[] anchorIds = { "free", "left", "right" };
+                int curAnchorIdx = Math.Max(0, Array.IndexOf(anchorIds, (Config.anchor ?? "free").ToLowerInvariant()));
+                var anchorSeg = makeStudioSegmented(new[] { "自由拖动", "贴靠左侧", "贴靠托盘" }, curAnchorIdx, idx =>
+                {
+                    Config.anchor = anchorIds[idx];
+                    liveCommit(false);
+                });
+                anchorSeg.Width = 232;
+                addSettingRow(s2, "任务栏位置吸附", "支持自由拖拽微调，或磁吸贴靠在任务栏左侧 / 系统托盘旁。", anchorSeg);
+
+                string[] fontIds = { "modern", "editorial", "mono" };
+                int curFontIdx = Math.Max(0, Array.IndexOf(fontIds, (Config.font_style ?? "modern").ToLowerInvariant()));
+                var fontSeg = makeStudioSegmented(new[] { "现代工业", "人文衬线", "极客等宽" }, curFontIdx, idx =>
+                {
+                    Config.font_style = fontIds[idx];
+                    liveCommit(false);
+                });
+                fontSeg.Width = 232;
+                addSettingRow(s2, "任务栏数字字体", "切换任务栏倒计时数字的排版气质。", fontSeg);
+
+                var secChk = new CheckBox { IsChecked = Config.show_seconds };
+                secChk.Checked += (s, e) => { Config.show_seconds = true; liveCommit(false); };
+                secChk.Unchecked += (s, e) => { Config.show_seconds = false; liveCommit(false); };
+                addSettingRow(s2, "任务栏直接显示时分秒", "常驻展开精确到秒的倒计时（会略微增加任务栏占用宽度）。", secChk);
+
+                var posBtns = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 0) };
                 var resetPosBtn = ActionButton("重置任务栏位置", () =>
                 {
                     Config.anchor = "free";
