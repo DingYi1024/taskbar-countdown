@@ -92,8 +92,8 @@ class Tests {
         // Verify 50+ unique literary quotes, tray icon default, and manual vs smart sort
         Check(Program.LiteraryQuotes.Length >= 50, "50+ literary quotes library");
         Check(Program.LiteraryQuotes.Distinct().Count() == Program.LiteraryQuotes.Length, "all literary quotes unique");
-        Check(def.show_tray_icon && def.sort_mode == "smart", "tray icon and sort_mode defaults");
-        Check(legacy.show_tray_icon && legacy.sort_mode == "smart", "legacy config preserves tray & sort defaults");
+        Check(!def.show_tray_icon && def.sort_mode == "smart", "tray icon default off and sort_mode default");
+        Check(!legacy.show_tray_icon && legacy.sort_mode == "smart", "legacy config preserves tray off & sort defaults");
 
         var testCfg = new Cfg {
             sort_mode = "manual",

@@ -69,7 +69,7 @@ namespace CountdownWidget
             click_action = "flyout";
             show_progress_bar = true;
             font_style = "modern";
-            show_tray_icon = true;
+            show_tray_icon = false;
             sort_mode = "smart";
             items = new List<CfgItem>();
         }

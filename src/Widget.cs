@@ -999,6 +999,16 @@ namespace CountdownWidget
             };
             W.ContextMenu = Menu();
             Build(true); W.Show(); Position();
+            if (!Preview && !HasWatchdog())
+            {
+                try
+                {
+                    string selfExe = Path.Combine(Dir, "Countdown.exe");
+                    if (File.Exists(selfExe))
+                        using (var p = Process.Start(new ProcessStartInfo(selfExe, "--watchdog") { WorkingDirectory = Dir, UseShellExecute = false })) { }
+                }
+                catch { }
+            }
             MainTimer = new DispatcherTimer();
             MainTimer.Tick += (s, e) => Tick();
             SyncTimerInterval();
